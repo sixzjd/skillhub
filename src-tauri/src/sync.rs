@@ -1,14 +1,8 @@
-use crate::agent::{home_dir, ssot_skills_dir, AgentKind, SkillInfo};
+use crate::agent::{home_dir, ssot_skills_dir, AgentKind};
 use serde::{Deserialize, Serialize};
 use std::collections::HashSet;
 use std::fs;
 use std::path::{Path, PathBuf};
-
-/// 同步配置：给哪些 agent 同步
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct SyncTarget {
-    pub agent_keys: Vec<String>,
-}
 
 /// 同步结果汇总
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -246,35 +240,4 @@ pub fn agent_from_key(key: &str) -> Option<AgentKind> {
 /// 列出某个 agent 可写的 skills 目录（用于前端展示当前生效目录）
 pub fn agent_skills_dir(key: &str) -> Option<String> {
     agent_from_key(key)?.detect().map(|p| p.to_string_lossy().to_string())
-}
-
-/// 供前端：本地库（SSOT）技能列表
-pub fn ssot_skills() -> Vec<SkillInfo> {
-    let ssot = ssot_skills_dir();
-    let mut out = Vec::new();
-    if let Ok(entries) = fs::read_dir(&ssot) {
-        for e in entries.flatten() {
-            let name = e.file_name().to_string_lossy().to_string();
-            if name.starts_with('.') {
-                continue;
-            }
-            let p = e.path();
-            if !p.is_dir() {
-                continue;
-            }
-            let desc = crate::agent::scan_agent_skills(AgentKind::Codex)
-                .into_iter()
-                .find(|s| s.name == name)
-                .map(|s| s.description)
-                .unwrap_or_default();
-            out.push(SkillInfo {
-                name,
-                path: p.to_string_lossy().to_string(),
-                is_link: p.is_symlink(),
-                has_skill_md: p.join("SKILL.md").exists(),
-                description: desc,
-            });
-        }
-    }
-    out
 }

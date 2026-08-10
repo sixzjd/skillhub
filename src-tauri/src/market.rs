@@ -79,6 +79,78 @@ pub fn default_marketplaces() -> Vec<Marketplace> {
     ]
 }
 
+/// 用户自定义市场配置文件：~/.config/skillhub/markets.json
+fn markets_config_path() -> PathBuf {
+    let home = crate::agent::home_dir();
+    home.join(".config").join("skillhub").join("markets.json")
+}
+
+/// 全部市场 = 内置默认 + 用户自定义
+pub fn list_all_markets() -> Vec<Marketplace> {
+    let mut all = default_marketplaces();
+    if let Ok(content) = std::fs::read_to_string(markets_config_path()) {
+        if let Ok(extra) = serde_json::from_str::<Vec<Marketplace>>(&content) {
+            for m in extra {
+                if !all.iter().any(|x| x.id == m.id) {
+                    all.push(m);
+                }
+            }
+        }
+    }
+    all
+}
+
+/// 添加自定义市场（owner/repo），持久化到配置文件
+pub fn add_market(owner: &str, repo: &str) -> Result<Marketplace, String> {
+    let owner = owner.trim().trim_start_matches('@').to_string();
+    let repo = repo.trim().trim_end_matches(".git").to_string();
+    if owner.is_empty() || repo.is_empty() {
+        return Err("owner 和 repo 不能为空".into());
+    }
+    let path = markets_config_path();
+    let mut custom: Vec<Marketplace> = std::fs::read_to_string(&path)
+        .ok()
+        .and_then(|c| serde_json::from_str(&c).ok())
+        .unwrap_or_default();
+    let id = format!("custom-{}-{}", owner.to_lowercase(), repo.to_lowercase());
+    if custom.iter().any(|m| m.id == id) {
+        return Err("该市场已存在".into());
+    }
+    let market = Marketplace {
+        id,
+        name: format!("{}/{}", owner, repo),
+        owner: owner.clone(),
+        repo: repo.clone(),
+        description: "自定义市场".into(),
+        url: format!("https://github.com/{}/{}", owner, repo),
+        official: false,
+    };
+    custom.push(market.clone());
+    save_markets(&path, &custom)?;
+    Ok(market)
+}
+
+/// 删除自定义市场
+pub fn remove_market(id: &str) -> Result<(), String> {
+    let path = markets_config_path();
+    if !path.exists() {
+        return Ok(());
+    }
+    let content = std::fs::read_to_string(&path).map_err(|e| e.to_string())?;
+    let mut custom: Vec<Marketplace> =
+        serde_json::from_str(&content).map_err(|e| e.to_string())?;
+    custom.retain(|m| m.id != id);
+    save_markets(&path, &custom)
+}
+
+fn save_markets(path: &PathBuf, markets: &[Marketplace]) -> Result<(), String> {
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+    std::fs::write(path, serde_json::to_string_pretty(markets).map_err(|e| e.to_string())?)
+        .map_err(|e| e.to_string())
+}
+
 /// 通过 GitHub API 拉取仓库技能列表
 /// 优先读 marketplace.json（Anthropic 协议），回退扫描 /skills 目录
 pub fn fetch_market_skills(market: &Marketplace) -> Result<Vec<MarketSkill>, String> {

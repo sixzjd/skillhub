@@ -13,6 +13,8 @@ export interface AgentScan {
   key: string;
   display: string;
   installed: boolean;
+  status: string;
+  install_url: string | null;
   skills_dir: string | null;
   skills: SkillInfo[];
 }
@@ -73,6 +75,10 @@ export const scanAll = () => invoke<ScanResult>("scan_all");
 export const listLibrary = () => invoke<LibrarySkill[]>("list_library");
 export const importFromPath = (src: string, name: string) =>
   invoke<{ imported: string[]; skipped: string[] }>("import_from_path", { src, name });
+export const readSkillMd = (name: string) =>
+  invoke<string>("read_skill_md", { name });
+export const readSkillMdAt = (path: string) =>
+  invoke<string>("read_skill_md_at", { path });
 export const removeFromLibrary = (name: string) =>
   invoke<void>("remove_from_library", { name });
 export const runSync = (targetKeys: string[]) =>
@@ -81,6 +87,11 @@ export const agentSkillsDir = (key: string) =>
   invoke<string | null>("agent_skills_dir", { key });
 export const defaultMarketplaces = () =>
   invoke<Marketplace[]>("default_marketplaces");
+export const listAllMarkets = () => invoke<Marketplace[]>("list_all_markets");
+export const addMarket = (owner: string, repo: string) =>
+  invoke<Marketplace>("add_market", { owner, repo });
+export const removeMarket = (id: string) =>
+  invoke<void>("remove_market", { id });
 export const fetchMarketSkills = (market: Marketplace) =>
   invoke<MarketSkill[]>("fetch_market_skills", { market });
 export const installMarketSkill = (market: Marketplace, skillSource: string, targetDir: string) =>

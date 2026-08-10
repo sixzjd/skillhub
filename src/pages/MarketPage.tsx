@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useI18n } from "../hooks/useI18n";
-import { defaultMarketplaces, fetchMarketSkills, installMarketSkill, listLibrary } from "../lib/tauri";
+import { listAllMarkets, addMarket, removeMarket, fetchMarketSkills, installMarketSkill, listLibrary } from "../lib/tauri";
 import type { Marketplace, MarketSkill } from "../lib/tauri";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -15,9 +15,20 @@ export function MarketPage() {
   const [installing, setInstalling] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [notice, setNotice] = useState<string | null>(null);
+  const [owner, setOwner] = useState("");
+  const [repo, setRepo] = useState("");
+  const [adding, setAdding] = useState(false);
+
+  const loadMarkets = () =>
+    listAllMarkets()
+      .then((list) => {
+        setMarkets(list);
+        setActive((cur) => (cur && list.some((m) => m.id === cur.id) ? cur : null));
+      })
+      .catch((e) => setError(String(e)));
 
   useEffect(() => {
-    defaultMarketplaces().then(setMarkets).catch((e) => setError(String(e)));
+    loadMarkets();
   }, []);
 
   const loadInstalled = async () => {
@@ -32,6 +43,37 @@ export function MarketPage() {
   useEffect(() => {
     loadInstalled();
   }, [installing]);
+
+  const isCustom = (m: Marketplace) => m.id.startsWith("custom-");
+
+  const doAdd = async () => {
+    setAdding(true);
+    setError(null);
+    setNotice(null);
+    try {
+      const m = await addMarket(owner, repo);
+      await loadMarkets();
+      setActive(m);
+      setOwner("");
+      setRepo("");
+      await openMarket(m);
+    } catch (e) {
+      setError(String(e));
+    } finally {
+      setAdding(false);
+    }
+  };
+
+  const doRemove = async (m: Marketplace) => {
+    setError(null);
+    try {
+      await removeMarket(m.id);
+      setActive((cur) => (cur?.id === m.id ? null : cur));
+      await loadMarkets();
+    } catch (e) {
+      setError(String(e));
+    }
+  };
 
   const openMarket = async (m: Marketplace) => {
     setActive(m);
@@ -82,6 +124,33 @@ export function MarketPage() {
         </Card>
       )}
 
+      {/* 添加自定义市场 */}
+      <Card>
+        <CardHeader>
+          <CardTitle>{t.market.customMarket}</CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-2 sm:flex-row">
+            <input
+              className="rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-900 dark:border-zinc-700 dark:focus:border-zinc-100"
+              placeholder={t.market.owner}
+              value={owner}
+              onChange={(e) => setOwner(e.target.value)}
+            />
+            <input
+              className="rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-900 dark:border-zinc-700 dark:focus:border-zinc-100"
+              placeholder={t.market.repo}
+              value={repo}
+              onChange={(e) => setRepo(e.target.value)}
+              onKeyDown={(e) => e.key === "Enter" && doAdd()}
+            />
+            <Button variant="accent" onClick={doAdd} disabled={adding || !owner.trim() || !repo.trim()}>
+              {adding ? t.common.loading : t.market.addMarket}
+            </Button>
+          </div>
+        </CardContent>
+      </Card>
+
       {/* 市场列表 */}
       <div className="grid gap-3 md:grid-cols-2 lg:grid-cols-3">
         {markets.map((m) => (
@@ -95,11 +164,25 @@ export function MarketPage() {
             <CardHeader>
               <div className="flex items-center justify-between">
                 <CardTitle>{m.name}</CardTitle>
-                {m.official && (
-                  <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
-                    {t.market.official}
-                  </span>
-                )}
+                <div className="flex items-center gap-1.5">
+                  {m.official && (
+                    <span className="rounded bg-blue-100 px-1.5 py-0.5 text-[10px] font-medium text-blue-700 dark:bg-blue-900/50 dark:text-blue-300">
+                      {t.market.official}
+                    </span>
+                  )}
+                  {isCustom(m) && (
+                    <button
+                      className="rounded px-1 text-zinc-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50"
+                      title={t.market.removeMarket}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        void doRemove(m);
+                      }}
+                    >
+                      ✕
+                    </button>
+                  )}
+                </div>
               </div>
               <CardDescription>{m.description}</CardDescription>
               <CardDescription className="font-mono text-[10px]">
@@ -143,7 +226,7 @@ export function MarketPage() {
                       ) : (
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant="accent"
                           disabled={installing === s.name}
                           onClick={() => doInstall(s)}
                         >

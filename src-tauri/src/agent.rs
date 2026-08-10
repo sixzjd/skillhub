@@ -62,8 +62,9 @@ impl AgentKind {
         let home = home_dir();
         let p = |rel: &str| home.join(rel);
         match self {
+            // Claude Desktop 用 ~/Library/Application Support/Claude；Claude Code 才是 ~/.claude/skills
             AgentKind::Claude => vec![
-                p(".claude/skills"),
+                p("Library/Application Support/Claude/skills"),
                 p(".config/claude/skills"),
             ],
             AgentKind::ClaudeCode => vec![p(".claude/skills")],
@@ -113,7 +114,7 @@ impl AgentKind {
                 // 退化：配置主目录存在但无 skills 目录（如 claude 目录存在）
                 let home = home_dir();
                 let cfg = match self {
-                    AgentKind::Claude => home.join(".claude"),
+                    AgentKind::Claude => home.join("Library/Application Support/Claude"),
                     AgentKind::ClaudeCode => home.join(".claude"),
                     AgentKind::Codex => home.join(".codex"),
                     AgentKind::Qoder => home.join(".qoder"),
@@ -129,6 +130,152 @@ impl AgentKind {
                 cfg.exists().then_some(cfg)
             })
     }
+
+    /// 区分安装状态：已安装 / 未安装 / 卸载残留
+    /// - 已安装：App 存在、CLI 存在、或主配置目录里有运行时痕迹
+    /// - 残留：只有 skills 目录或空壳配置，没有实际程序/运行时痕迹
+    pub fn status(&self) -> AgentStatus {
+        let home = home_dir();
+        let has_app: bool;
+        let has_cli: bool;
+        let has_core: bool;
+        match self {
+            AgentKind::Claude => {
+                has_app = Path::new("/Applications/Claude.app").exists();
+                has_cli = which_cli("claude");
+                // Claude Desktop 与 Claude Code 共用 ~/.claude；核心运行时痕迹=plugins/marketplaces 等
+                has_core = home.join(".claude/plugins").exists()
+                    || home.join(".claude/settings.json").exists()
+                    || home.join(".claude/config.json").exists();
+            }
+            AgentKind::ClaudeCode => {
+                has_app = false;
+                has_cli = which_cli("claude");
+                has_core = home.join(".claude/plugins").exists()
+                    || home.join(".claude/settings.json").exists();
+            }
+            AgentKind::Codex => {
+                has_app = false;
+                has_cli = which_cli("codex");
+                has_core = home.join(".codex/sessions").exists()
+                    || home.join(".codex/logs_2.sqlite").exists()
+                    || home.join(".codex/auth.json").exists();
+            }
+            AgentKind::Qoder => {
+                has_app = Path::new("/Applications/Qoder.app").exists()
+                    || Path::new("/Applications/Qoder CN.app").exists();
+                has_cli = false;
+                has_core = home.join(".qoderworkcn/state").exists()
+                    || home.join(".qoderworkcn/logs").exists();
+            }
+            AgentKind::QoderWork => {
+                has_app = Path::new("/Applications/QoderWork CN.app").exists()
+                    || Path::new("/Applications/QoderWork.app").exists();
+                has_cli = false;
+                has_core = home.join(".qoderworkcn/state").exists()
+                    || home.join(".qoderworkcn/logs").exists();
+            }
+            AgentKind::CodeWhale => {
+                has_app = false;
+                has_cli = which_cli("codewhale");
+                has_core = home.join(".codewhale/state_5.sqlite").exists()
+                    || home.join(".codewhale/sessions").exists()
+                    || home.join(".codewhale/config.toml").exists();
+            }
+            AgentKind::Trae => {
+                has_app = Path::new("/Applications/Trae.app").exists()
+                    || Path::new("/Applications/Trae CN.app").exists();
+                has_cli = false;
+                has_core = home.join(".trae/workbench").exists()
+                    || home.join(".trae/settings.json").exists();
+            }
+            AgentKind::Reasonix => {
+                has_app = Path::new("/Applications/Reasonix.app").exists();
+                has_cli = false;
+                has_core = home.join(".reasonix/state").exists()
+                    || home.join(".reasonix/logs").exists();
+            }
+            AgentKind::OpenCode => {
+                has_app = false;
+                has_cli = which_cli("opencode");
+                has_core = home.join(".config/opencode/auth.json").exists()
+                    || home.join(".local/share/opencode").exists();
+            }
+            AgentKind::OpenClaw => {
+                has_app = false;
+                has_cli = which_cli("openclaw");
+                has_core = home.join(".openclaw/logs").exists()
+                    || home.join(".openclaw/config.json").exists();
+            }
+            AgentKind::Cursor => {
+                has_app = Path::new("/Applications/Cursor.app").exists()
+                    || Path::new("~/Applications/Cursor.app").exists();
+                has_cli = false;
+                has_core = home.join(".cursor/projects").exists()
+                    || home.join(".cursor/argv.json").exists();
+            }
+            AgentKind::Gemini => {
+                has_app = Path::new("/Applications/Gemini.app").exists();
+                has_cli = which_cli("gemini");
+                has_core = home.join(".gemini/state").exists()
+                    || home.join(".gemini/logs").exists();
+            }
+        }
+        if has_app || has_cli || has_core {
+            AgentStatus::Installed
+        } else if self.skill_dir_candidates().iter().any(|d| d.exists())
+            || home.join(self.main_cfg_name()).exists()
+        {
+            AgentStatus::Remnant
+        } else {
+            AgentStatus::NotInstalled
+        }
+    }
+
+    /// 主配置目录名（相对 home），用于残留检测
+    fn main_cfg_name(&self) -> &'static str {
+        match self {
+            AgentKind::Claude => "Library/Application Support/Claude",
+            AgentKind::ClaudeCode => ".claude",
+            AgentKind::Codex => ".codex",
+            AgentKind::Qoder | AgentKind::QoderWork => ".qoderworkcn",
+            AgentKind::CodeWhale => ".codewhale",
+            AgentKind::Trae => ".trae",
+            AgentKind::Reasonix => ".reasonix",
+            AgentKind::OpenCode => ".config/opencode",
+            AgentKind::OpenClaw => ".openclaw",
+            AgentKind::Cursor => ".cursor",
+            AgentKind::Gemini => ".gemini",
+        }
+    }
+
+    /// 该 agent 的官网/安装指引（供"一键安装/更新"跳转）
+    pub fn install_url(&self) -> &'static str {
+        match self {
+            AgentKind::Claude => "https://claude.ai/download",
+            AgentKind::ClaudeCode => "https://docs.anthropic.com/en/docs/claude-code/setup",
+            AgentKind::Codex => "https://github.com/openai/codex",
+            AgentKind::Qoder => "https://qoder.com",
+            AgentKind::QoderWork => "https://qoder.com",
+            AgentKind::CodeWhale => "https://github.com/kingparks/codewhale",
+            AgentKind::Trae => "https://www.trae.ai",
+            AgentKind::Reasonix => "https://reasonix.ai",
+            AgentKind::OpenCode => "https://opencode.ai",
+            AgentKind::OpenClaw => "https://github.com/lem-project/openclaw",
+            AgentKind::Cursor => "https://cursor.com",
+            AgentKind::Gemini => "https://gemini.google.com",
+        }
+    }
+}
+
+/// Agent 安装状态
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
+pub enum AgentStatus {
+    Installed,
+    NotInstalled,
+    /// 卸载残留（只有 skills 目录/空壳配置，无实际程序）
+    Remnant,
 }
 
 /// 框架标准 SSOT 目录（supframework 倡导 + cc-switch 新版本支持）
@@ -158,6 +305,18 @@ pub fn all_agents() -> Vec<AgentKind> {
 /// 返回 home 目录
 pub fn home_dir() -> PathBuf {
     dirs::home_dir().expect("无法获取用户主目录")
+}
+
+/// 检测某个 CLI 命令是否在 PATH 中
+pub fn which_cli(cmd: &str) -> bool {
+    let path_env = std::env::var_os("PATH").unwrap_or_default();
+    for dir in std::env::split_paths(&path_env) {
+        let candidate = dir.join(cmd);
+        if candidate.is_file() {
+            return true;
+        }
+    }
+    false
 }
 
 /// 扫描单个 agent 的 skills，返回已安装技能列表
@@ -208,7 +367,6 @@ fn read_frontmatter_desc(skill_md: &Path) -> String {
     };
     // 取前 200 字符作为描述（frontmatter description 优先）
     let mut desc = String::new();
-    let mut in_fm = true;
     let mut fm_end = 0;
     for (i, line) in content.lines().enumerate() {
         if i == 0 && line.trim() == "---" {
@@ -264,6 +422,9 @@ pub struct AgentScan {
     pub key: String,
     pub display: String,
     pub installed: bool,
+    /// installed / not_installed / remnant
+    pub status: String,
+    pub install_url: Option<String>,
     pub skills_dir: Option<String>,
     pub skills: Vec<SkillInfo>,
 }
@@ -273,16 +434,23 @@ pub fn scan_all() -> ScanResult {
     for kind in all_agents() {
         let skills_dir = kind.detect().map(|p| p.to_string_lossy().to_string());
         let skills = scan_agent_skills(kind);
+        let status = kind.status();
+        let status_str = match status {
+            AgentStatus::Installed => "installed",
+            AgentStatus::NotInstalled => "not_installed",
+            AgentStatus::Remnant => "remnant",
+        }
+        .to_string();
         agents.push(AgentScan {
             key: kind.key().to_string(),
             display: kind.display().to_string(),
-            installed: skills_dir.is_some(),
+            installed: matches!(status, AgentStatus::Installed),
+            status: status_str,
+            install_url: Some(kind.install_url().to_string()),
             skills_dir,
             skills,
         });
     }
-    // 附加一个特殊的 "Local library" 概念：~/.agents/skills 本来就列在扫描外，
-    // 前端以独立面板展示。这里返回给前端即可。
     let _ = HashMap::<String, String>::new();
     ScanResult { agents }
 }

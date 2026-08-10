@@ -2,6 +2,8 @@ name: Build
 
 on:
   push:
+    branches:
+      - main
     tags:
       - "v*"
   workflow_dispatch:
@@ -34,7 +36,7 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 9
+          version: 11
 
       - name: Install Linux dependencies (Linux only)
         if: matrix.platform == 'ubuntu-latest'

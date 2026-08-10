@@ -25,6 +25,18 @@ fn import_from_path(src: String, name: String) -> library::ImportResult {
     library::import_from_path(&src, &name)
 }
 
+/// 读取本地库技能的 SKILL.md（预览）
+#[tauri::command]
+fn read_skill_md(name: String) -> Result<String, String> {
+    library::read_skill_md(&name)
+}
+
+/// 读取任意技能目录的 SKILL.md（预览 agent/市场侧技能）
+#[tauri::command]
+fn read_skill_md_at(path: String) -> Result<String, String> {
+    library::read_skill_md_at(&path)
+}
+
 /// 从本地库移除技能（移入废纸篓）
 #[tauri::command]
 fn remove_from_library(name: String) -> Result<(), String> {
@@ -47,6 +59,24 @@ fn agent_skills_dir(key: String) -> Option<String> {
 #[tauri::command]
 fn default_marketplaces() -> Vec<market::Marketplace> {
     market::default_marketplaces()
+}
+
+/// 全部市场（默认 + 自定义）
+#[tauri::command]
+fn list_all_markets() -> Vec<market::Marketplace> {
+    market::list_all_markets()
+}
+
+/// 添加自定义市场
+#[tauri::command]
+fn add_market(owner: String, repo: String) -> Result<market::Marketplace, String> {
+    market::add_market(&owner, &repo)
+}
+
+/// 删除自定义市场
+#[tauri::command]
+fn remove_market(id: String) -> Result<(), String> {
+    market::remove_market(&id)
 }
 
 /// 拉取市场技能
@@ -88,10 +118,15 @@ pub fn run() {
             scan_all,
             list_library,
             import_from_path,
+            read_skill_md,
+            read_skill_md_at,
             remove_from_library,
             run_sync,
             agent_skills_dir,
             default_marketplaces,
+            list_all_markets,
+            add_market,
+            remove_market,
             fetch_market_skills,
             install_market_skill,
             app_info,

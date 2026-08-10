@@ -1,10 +1,11 @@
 import { useCallback, useEffect, useState } from "react";
 import { useI18n } from "../hooks/useI18n";
-import { listLibrary, runSync, removeFromLibrary, scanAll } from "../lib/tauri";
+import { listLibrary, runSync, removeFromLibrary, scanAll, importFromPath, readSkillMdAt } from "../lib/tauri";
 import type { LibrarySkill, SyncReport, AgentScan } from "../lib/tauri";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
+import { SkillPreview } from "../components/SkillPreview";
 
 export function LibraryPage() {
   const { t } = useI18n();
@@ -15,6 +16,7 @@ export function LibraryPage() {
   const [syncing, setSyncing] = useState(false);
   const [report, setReport] = useState<SyncReport | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [preview, setPreview] = useState<{ name: string; content: string | null } | null>(null);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -78,6 +80,36 @@ export function LibraryPage() {
     }
   };
 
+  // 每个本地库技能：若某已安装 agent 有同名技能，则提供"更新"（从其重新拷贝覆盖）
+  const agentSource: Record<string, string> = {};
+  for (const a of agents) {
+    for (const sk of a.skills) {
+      if (!(sk.name in agentSource)) agentSource[sk.name] = sk.path;
+    }
+  }
+
+  const openPreview = async (name: string, path: string) => {
+    setPreview({ name, content: null });
+    try {
+      const content = await readSkillMdAt(path);
+      setPreview({ name, content });
+    } catch (e) {
+      setPreview({ name, content: String(e) });
+    }
+  };
+
+  const doUpdate = async (name: string) => {
+    const src = agentSource[name];
+    if (!src) return;
+    try {
+      await importFromPath(src, name);
+      await load();
+      setError(null);
+    } catch (e) {
+      setError(String(e));
+    }
+  };
+
   const fmtSize = (b: number) => {
     if (b < 1024) return `${b} B`;
     if (b < 1024 * 1024) return `${(b / 1024).toFixed(1)} KB`;
@@ -112,28 +144,49 @@ export function LibraryPage() {
             <p className="py-6 text-center text-sm text-zinc-400">{t.library.empty}</p>
           ) : (
             <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {skills.map((s) => (
-                <div key={s.name} className="flex items-center gap-3 py-2">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex items-center gap-2">
-                      <span className="text-sm font-medium">{s.name}</span>
-                      {!s.has_skill_md && (
-                        <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
-                          {t.library.noSkillMd}
-                        </span>
+              {skills.map((s) => {
+                const hasSource = !!agentSource[s.name];
+                return (
+                  <div key={s.name} className="flex items-center gap-3 py-2">
+                    <div className="min-w-0 flex-1">
+                      <button
+                        className="text-left"
+                        onClick={() => openPreview(s.name, s.path)}
+                        title={t.library.preview}
+                      >
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium underline-offset-2 hover:underline">{s.name}</span>
+                          {!s.has_skill_md && (
+                            <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                              {t.library.noSkillMd}
+                            </span>
+                          )}
+                        </div>
+                      </button>
+                      {s.description && (
+                        <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">{s.description}</p>
                       )}
+                      <p className="mt-0.5 truncate font-mono text-[10px] text-zinc-400">{s.path}</p>
                     </div>
-                    {s.description && (
-                      <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">{s.description}</p>
+                    <span className="shrink-0 text-xs text-zinc-400">{fmtSize(s.size_bytes)}</span>
+                    <Button variant="ghost" size="sm" onClick={() => openPreview(s.name, s.path)}>
+                      {t.library.preview}
+                    </Button>
+                    {hasSource ? (
+                      <Button variant="outline" size="sm" onClick={() => doUpdate(s.name)}>
+                        {t.library.update}
+                      </Button>
+                    ) : (
+                      <Button variant="ghost" size="sm" disabled title="No agent source">
+                        {t.library.update}
+                      </Button>
                     )}
-                    <p className="mt-0.5 truncate font-mono text-[10px] text-zinc-400">{s.path}</p>
+                    <Button variant="ghost" size="sm" onClick={() => doRemove(s.name)}>
+                      {t.library.remove}
+                    </Button>
                   </div>
-                  <span className="shrink-0 text-xs text-zinc-400">{fmtSize(s.size_bytes)}</span>
-                  <Button variant="ghost" size="sm" onClick={() => doRemove(s.name)}>
-                    {t.library.remove}
-                  </Button>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </CardContent>
@@ -178,7 +231,7 @@ export function LibraryPage() {
                 ))}
               </div>
               <div className="mt-4">
-                <Button onClick={doSync} disabled={syncing}>
+                <Button variant="accent" onClick={doSync} disabled={syncing}>
                   {syncing ? t.sync.syncing : t.sync.syncNow}
                 </Button>
               </div>
@@ -222,6 +275,10 @@ export function LibraryPage() {
           )}
         </CardContent>
       </Card>
+
+      {preview && (
+        <SkillPreview name={preview.name} content={preview.content} onClose={() => setPreview(null)} />
+      )}
     </div>
   );
 }

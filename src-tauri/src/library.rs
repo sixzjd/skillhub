@@ -1,4 +1,4 @@
-use crate::agent::{home_dir, ssot_skills_dir, SkillInfo};
+use crate::agent::{home_dir, ssot_skills_dir};
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -54,7 +54,6 @@ fn read_desc(skill_md: &Path) -> String {
     let Ok(c) = fs::read_to_string(skill_md) else { return String::new() };
     let mut in_fm = false;
     let mut fm_lines = Vec::new();
-    let mut body_started = false;
     let mut fm_end = 0usize;
     let lines: Vec<&str> = c.lines().collect();
     for (i, line) in lines.iter().enumerate() {
@@ -64,7 +63,6 @@ fn read_desc(skill_md: &Path) -> String {
             continue;
         }
         if in_fm && t == "---" {
-            in_fm = false;
             fm_end = i + 1;
             break;
         }
@@ -77,7 +75,6 @@ fn read_desc(skill_md: &Path) -> String {
             return v.trim().trim_matches('"').to_string();
         }
     }
-    let _ = body_started;
     for line in lines.iter().skip(fm_end) {
         let t = line.trim();
         if !t.is_empty() && !t.starts_with('#') && !t.starts_with("---") {
@@ -116,14 +113,65 @@ pub fn import_from_path(src: &str, name: &str) -> ImportResult {
         result.skipped.push(format!("{name}: 源目录不存在"));
         return result;
     }
-    // 已有同名 → 跳过（避免误覆盖），提示用户
+    // 已有同名 → 覆盖（先移入备份目录再复制，保证"更新"语义）
     if dst.exists() {
-        result.skipped.push(format!("{name}: 本地库已存在同名技能"));
-        return result;
+        let backup = ssot.join(format!(".backup/{}-{}-{}", name, "import", chrono::Local::now().format("%Y%m%d%H%M%S")));
+        fs::create_dir_all(backup.parent().unwrap()).ok();
+        let _ = fs::rename(&dst, &backup);
     }
     copy_dir_all(src_p, &dst).ok();
     result.imported.push(name.to_string());
     result
+}
+
+/// 读取本地库技能的 SKILL.md 内容（供前端预览）
+pub fn read_skill_md(name: &str) -> Result<String, String> {
+    let ssot = ssot_skills_dir();
+    let item = ssot.join(name);
+    let md = item.join("SKILL.md");
+    if !md.exists() {
+        // 回退：列出目录里存在的 .md（如 README.md）
+        if let Ok(entries) = fs::read_dir(&item) {
+            for e in entries.flatten() {
+                let p = e.path();
+                if p.is_file() && p.extension().is_some_and(|e| e == "md") {
+                    if let Ok(c) = fs::read_to_string(&p) {
+                        return Ok(format!("⚠ 未找到 SKILL.md，展示 {}\n\n{}", p.file_name().unwrap_or_default().to_string_lossy(), c));
+                    }
+                }
+            }
+        }
+        return Err(format!("{name} 目录下没有 SKILL.md"));
+    }
+    fs::read_to_string(&md).map_err(|e| e.to_string())
+}
+
+/// 读取任意技能目录的 SKILL.md（供前端预览 agent/市场侧技能，不限于本地库）
+pub fn read_skill_md_at(skill_dir: &str) -> Result<String, String> {
+    let dir = Path::new(skill_dir);
+    if !dir.is_dir() {
+        return Err(format!("目录不存在: {skill_dir}"));
+    }
+    let md = dir.join("SKILL.md");
+    if md.is_file() {
+        return fs::read_to_string(&md).map_err(|e| e.to_string());
+    }
+    // 回退：目录内第一个 .md（如 README.md）
+    if let Ok(entries) = fs::read_dir(dir) {
+        for e in entries.flatten() {
+            let p = e.path();
+            if p.is_file() && p.extension().is_some_and(|x| x == "md") {
+                if let Ok(c) = fs::read_to_string(&p) {
+                    return Ok(format!(
+                        "⚠ 未找到 SKILL.md，展示 {}\n\n{}",
+                        p.file_name().unwrap_or_default().to_string_lossy(),
+                        c
+                    ));
+                }
+            }
+        }
+    }
+    Err(format!("{skill_dir} 下没有 SKILL.md 或 .md 文件"))
 }
 
 /// 从本地库删除技能（移入废纸篓，不硬删）
@@ -142,12 +190,6 @@ pub fn remove_from_library(name: &str) -> std::io::Result<()> {
     let dest = trash.join(format!("skillhub-{name}-{stamp}"));
     fs::rename(&item, &dest)?;
     Ok(())
-}
-
-/// 从本地库移除后，同步时会自动回收各 agent 的孤儿链接（在 sync 模块处理）
-pub fn sync_after_remove() -> Vec<SkillInfo> {
-    // 占位：实际孤儿回收在 run_sync 中完成
-    Vec::new()
 }
 
 /// 复制目录（递归）
