@@ -141,12 +141,11 @@ impl AgentKind {
         let has_core: bool;
         match self {
             AgentKind::Claude => {
+                // Claude 桌面版独立探测：~/.claude 是 Claude Code（CLI）的家目录，
+                // 不能当作桌面版已安装的证据（否则装了 CLI 就误报桌面版）
                 has_app = Path::new("/Applications/Claude.app").exists();
-                has_cli = which_cli("claude");
-                // Claude Desktop 与 Claude Code 共用 ~/.claude；核心运行时痕迹=plugins/marketplaces 等
-                has_core = home.join(".claude/plugins").exists()
-                    || home.join(".claude/settings.json").exists()
-                    || home.join(".claude/config.json").exists();
+                has_cli = false; // `claude` CLI 属于 Claude Code，不是桌面版
+                has_core = home.join("Library/Application Support/Claude").exists();
             }
             AgentKind::ClaudeCode => {
                 has_app = false;
