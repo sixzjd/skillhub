@@ -81,18 +81,18 @@ fn remove_market(id: String) -> Result<(), String> {
 
 /// 拉取市场技能
 #[tauri::command]
-fn fetch_market_skills(market: market::Marketplace) -> Result<Vec<market::MarketSkill>, String> {
-    market::fetch_market_skills(&market)
+async fn fetch_market_skills(market: market::Marketplace) -> Result<Vec<market::MarketSkill>, String> {
+    market::fetch_market_skills(&market).await
 }
 
 /// 安装市场技能到本地库
 #[tauri::command]
-fn install_market_skill(
+async fn install_market_skill(
     market: market::Marketplace,
     skill_source: String,
     target_dir: String,
 ) -> Result<(), String> {
-    market::install_market_skill(&market, &skill_source, &target_dir)
+    market::install_market_skill(&market, &skill_source, &target_dir).await
 }
 
 /// 版本信息

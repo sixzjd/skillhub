@@ -1,5 +1,7 @@
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::time::Duration;
 
 /// 插件/技能市场
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -151,120 +153,199 @@ fn save_markets(path: &PathBuf, markets: &[Marketplace]) -> Result<(), String> {
         .map_err(|e| e.to_string())
 }
 
-/// 通过 GitHub API 拉取仓库技能列表
-/// 优先读 marketplace.json（Anthropic 协议），回退扫描 /skills 目录
-pub fn fetch_market_skills(market: &Marketplace) -> Result<Vec<MarketSkill>, String> {
-    let api_base = format!(
-        "https://api.github.com/repos/{}/{}",
-        market.owner, market.repo
-    );
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("SkillHub/0.1")
-        .build()
-        .map_err(|e| e.to_string())?;
+static TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
 
-    // 1) 尝试 marketplace.json
-    let mkt_url = format!("{api_base}/contents/marketplace.json");
-    let raw = fetch_raw(&client, &mkt_url).ok();
-    if let Some(body) = raw {
-        if let Ok(mkt) = serde_json::from_str::<MarketplaceFile>(&body) {
-            let mut skills = Vec::new();
-            for p in mkt.plugins {
-                let mut desc = p.description.unwrap_or_default();
-                let has_md = p.skills.as_ref().map(|s| s.len() > 0).unwrap_or(false);
-                if !has_md {
-                    if let Ok(full) = fetch_raw(&client, &format!("{api_base}/contents/{}", p.source)) {
-                        desc = if desc.is_empty() { full } else { desc };
-                    }
+/// 共享异步客户端：超时 + 读取环境变量代理（HTTP(S)/ALL_PROXY）
+async fn build_client() -> Result<reqwest::Client, String> {
+    let mut b = reqwest::Client::builder()
+        .user_agent("SkillHub/0.1")
+        .connect_timeout(Duration::from_secs(10))
+        .timeout(Duration::from_secs(180));
+    for v in [
+        "HTTPS_PROXY",
+        "https_proxy",
+        "ALL_PROXY",
+        "all_proxy",
+        "HTTP_PROXY",
+        "http_proxy",
+    ] {
+        if let Ok(p) = std::env::var(v) {
+            if !p.trim().is_empty() {
+                if let Ok(px) = reqwest::Proxy::all(p.trim()) {
+                    b = b.proxy(px);
                 }
-                skills.push(MarketSkill {
-                    name: p.name,
-                    description: desc,
-                    source: p.source.clone(),
-                    repo: format!("{}/{}", market.owner, market.repo),
-                    url: format!(
-                        "https://github.com/{}/{}/tree/main/{}",
-                        market.owner, market.repo, p.source
-                    ),
-                    installed: false,
-                });
-            }
-            return Ok(skills);
-        }
-    }
-
-    // 2) 回退：扫 /skills 目录
-    let skills_url = format!("{api_base}/contents/skills");
-    let body = fetch_raw(&client, &skills_url).map_err(|e| format!("无法读取市场仓库: {e}"))?;
-    let entries: Vec<GHContent> = serde_json::from_str(&body).map_err(|e| e.to_string())?;
-    let mut skills = Vec::new();
-    for e in entries.into_iter().filter(|e| e.type_ == "dir") {
-        let name = e.name.clone();
-        let desc = fetch_raw(&client, &format!("{}/SKILL.md", e.path))
-            .ok()
-            .map(|d| extract_desc(&d))
-            .unwrap_or_default();
-        skills.push(MarketSkill {
-            name: name.clone(),
-            description: desc,
-            source: format!("skills/{}", e.name),
-            repo: format!("{}/{}", market.owner, market.repo),
-            url: format!(
-                "https://github.com/{}/{}/tree/main/skills/{}",
-                market.owner, market.repo, name
-            ),
-            installed: false,
-        });
-    }
-    Ok(skills)
-}
-
-/// 下载并解压市场技能到本地库（~/.agents/skills）
-pub fn install_market_skill(market: &Marketplace, skill_source: &str, target_dir: &str) -> Result<(), String> {
-    // 通过 GitHub tarball 下载整个仓库，找对应技能目录
-    let tarball_url = format!(
-        "https://api.github.com/repos/{}/{}/tarball/main",
-        market.owner, market.repo
-    );
-    let client = reqwest::blocking::Client::builder()
-        .user_agent("SkillHub/0.1")
-        .build()
-        .map_err(|e| e.to_string())?;
-    let resp = client
-        .get(&tarball_url)
-        .send()
-        .map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Err(format!("下载失败: HTTP {}", resp.status()));
-    }
-    let bytes = resp
-        .bytes()
-        .map_err(|e| e.to_string())?;
-
-    // 解压到临时目录
-    let tmp = std::env::temp_dir().join(format!("skillhub-{}", chrono::Local::now().timestamp()));
-    std::fs::create_dir_all(&tmp).map_err(|e| e.to_string())?;
-
-    // tar.gz 解压
-    let gz = flate2::read::GzDecoder::new(&bytes[..]);
-    let mut ar = tar::Archive::new(gz);
-    ar.unpack(&tmp).map_err(|e| format!("解压失败: {e}"))?;
-
-    // 仓库根目录 = tmp 下唯一目录
-    let mut repo_root: Option<PathBuf> = None;
-    if let Ok(entries) = std::fs::read_dir(&tmp) {
-        for e in entries.flatten() {
-            if e.path().is_dir() {
-                repo_root = Some(e.path());
                 break;
             }
         }
     }
-    let repo_root = repo_root.ok_or("tarball 结构异常")?;
+    b.build().map_err(|e| e.to_string())
+}
 
-    // 目标技能目录
+/// 一次性下载整个仓库 tarball（默认分支），本地扫描即可拿到全部技能，
+/// 避免对每个技能串行请求 GitHub API（慢且触发 60 次/时 限流）。
+async fn fetch_tarball(client: &reqwest::Client, market: &Marketplace) -> Result<Vec<u8>, String> {
+    let url = format!(
+        "https://codeload.github.com/{}/{}/tar.gz/HEAD",
+        market.owner, market.repo
+    );
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .map_err(|e| format!("下载仓库失败: {e}"))?;
+    if !resp.status().is_success() {
+        return Err(format!("下载仓库失败: HTTP {}", resp.status()));
+    }
+    resp.bytes().await.map(|b| b.to_vec()).map_err(|e| e.to_string())
+}
+
+fn unpack_tarball(bytes: &[u8]) -> Result<PathBuf, String> {
+    let uniq = TMP_COUNTER.fetch_add(1, Ordering::Relaxed);
+    let tmp = std::env::temp_dir().join(format!("skillhub-{}-{uniq}", std::process::id()));
+    let _ = std::fs::remove_dir_all(&tmp);
+    std::fs::create_dir_all(&tmp).map_err(|e| e.to_string())?;
+    let gz = flate2::read::GzDecoder::new(bytes);
+    let mut ar = tar::Archive::new(gz);
+    ar.unpack(&tmp).map_err(|e| format!("解压失败: {e}"))?;
+    Ok(tmp)
+}
+
+fn find_repo_root(tmp: &Path) -> Result<PathBuf, String> {
+    for e in std::fs::read_dir(tmp).map_err(|e| e.to_string())?.flatten() {
+        if e.path().is_dir() {
+            return Ok(e.path());
+        }
+    }
+    Err("tarball 结构异常".into())
+}
+
+/// 拉取市场技能列表（全仓 tarball 本地扫描）
+pub async fn fetch_market_skills(market: &Marketplace) -> Result<Vec<MarketSkill>, String> {
+    let client = build_client().await?;
+    let bytes = fetch_tarball(&client, market).await?;
+    let tmp = unpack_tarball(&bytes)?;
+    let repo_root = find_repo_root(&tmp)?;
+    let skills = scan_repo(&repo_root, market);
+    let _ = std::fs::remove_dir_all(&tmp);
+    Ok(skills)
+}
+
+fn scan_repo(repo_root: &Path, market: &Marketplace) -> Vec<MarketSkill> {
+    // 1) marketplace.json（Anthropic 插件协议；可能位于仓库根或 .claude-plugin/）
+    for rel in ["marketplace.json", ".claude-plugin/marketplace.json"] {
+        if let Ok(text) = std::fs::read_to_string(repo_root.join(rel)) {
+            if let Ok(mkt) = serde_json::from_str::<MarketplaceFile>(&text) {
+                return mkt
+                    .plugins
+                    .into_iter()
+                    .map(|p| {
+                        let mut desc = p.description.unwrap_or_default();
+                        if desc.is_empty() && !p.source.is_empty() {
+                            if let Some(d) = read_md_desc(repo_root, &p.source) {
+                                desc = d;
+                            }
+                        }
+                        MarketSkill {
+                            name: p.name,
+                            description: desc,
+                            source: p.source.clone(),
+                            repo: format!("{}/{}", market.owner, market.repo),
+                            url: format!(
+                                "https://github.com/{}/{}/tree/main/{}",
+                                market.owner, market.repo, p.source
+                            ),
+                            installed: false,
+                        }
+                    })
+                    .collect();
+            }
+        }
+    }
+
+    // 2) 扫 /skills 目录
+    let mut skills = Vec::new();
+    if let Ok(entries) = std::fs::read_dir(repo_root.join("skills")) {
+        for e in entries.flatten() {
+            let path = e.path();
+            if !path.is_dir() {
+                continue;
+            }
+            let name = e.file_name().to_string_lossy().to_string();
+            let desc = std::fs::read_to_string(path.join("SKILL.md"))
+                .ok()
+                .map(|d| extract_desc(&d))
+                .unwrap_or_default();
+            skills.push(MarketSkill {
+                name: name.clone(),
+                description: desc,
+                source: format!("skills/{name}"),
+                repo: format!("{}/{}", market.owner, market.repo),
+                url: format!(
+                    "https://github.com/{}/{}/tree/main/skills/{}",
+                    market.owner, market.repo, name
+                ),
+                installed: false,
+            });
+        }
+    }
+
+    // 3) 根目录下含 SKILL.md 的技能目录（根布局仓库，如 ComposioHQ/awesome-claude-skills）
+    if skills.is_empty() {
+        if let Ok(entries) = std::fs::read_dir(repo_root) {
+            for e in entries.flatten() {
+                let path = e.path();
+                if path.is_dir() && path.join("SKILL.md").is_file() {
+                    let name = e.file_name().to_string_lossy().to_string();
+                    let desc = std::fs::read_to_string(path.join("SKILL.md"))
+                        .ok()
+                        .map(|d| extract_desc(&d))
+                        .unwrap_or_default();
+                    skills.push(MarketSkill {
+                        name: name.clone(),
+                        description: desc,
+                        source: name.clone(),
+                        repo: format!("{}/{}", market.owner, market.repo),
+                        url: format!(
+                            "https://github.com/{}/{}/tree/main/{}",
+                            market.owner, market.repo, name
+                        ),
+                        installed: false,
+                    });
+                }
+            }
+        }
+    }
+    skills
+}
+
+/// 从仓库内路径读取描述（SKILL.md 优先，其次任意 md），失败返回 None
+fn read_md_desc(repo_root: &Path, source: &str) -> Option<String> {
+    let p = repo_root.join(source.trim_start_matches('/'));
+    let md = p.join("SKILL.md");
+    let file = if md.is_file() {
+        md
+    } else if p.is_file() && p.extension().map(|e| e == "md").unwrap_or(false) {
+        p
+    } else {
+        return None;
+    };
+    std::fs::read_to_string(file).ok().map(|c| extract_desc(&c))
+}
+
+/// 下载并解压市场技能到本地库（~/.agents/skills）
+pub async fn install_market_skill(
+    market: &Marketplace,
+    skill_source: &str,
+    target_dir: &str,
+) -> Result<(), String> {
+    let client = build_client().await?;
+    let bytes = fetch_tarball(&client, market).await?;
+    let tmp = unpack_tarball(&bytes)?;
+    let repo_root = find_repo_root(&tmp)?;
+
     let src_dir = repo_root.join(skill_source.trim_start_matches('/'));
     if !src_dir.is_dir() {
+        let _ = std::fs::remove_dir_all(&tmp);
         return Err(format!("技能目录不存在: {skill_source}"));
     }
 
@@ -333,19 +414,6 @@ fn extract_desc(content: &str) -> String {
         .unwrap_or_default()
 }
 
-/// GitHub API raw 内容拉取
-fn fetch_raw(client: &reqwest::blocking::Client, url: &str) -> Result<String, String> {
-    let resp = client
-        .get(url)
-        .header("Accept", "application/vnd.github.raw")
-        .send()
-        .map_err(|e| e.to_string())?;
-    if !resp.status().is_success() {
-        return Err(format!("HTTP {}", resp.status()));
-    }
-    resp.text().map_err(|e| e.to_string())
-}
-
 // ---- API 结构 ----
 #[derive(Debug, Deserialize)]
 struct MarketplaceFile {
@@ -358,14 +426,4 @@ struct MarketplacePlugin {
     #[serde(default)]
     source: String,
     description: Option<String>,
-    #[serde(default)]
-    skills: Option<Vec<String>>,
-}
-
-#[derive(Debug, Deserialize)]
-struct GHContent {
-    name: String,
-    #[serde(rename = "type")]
-    type_: String,
-    path: String,
 }
