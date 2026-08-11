@@ -22,10 +22,10 @@ export default function App() {
   return (
     <div className="flex h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
       {/* 侧边栏 */}
-      <aside className="flex w-52 shrink-0 flex-col border-r border-zinc-200/80 bg-white/90 backdrop-blur dark:border-zinc-800/80 dark:bg-zinc-900/90">
+      <aside className="flex w-52 shrink-0 flex-col border-r border-zinc-200/70 bg-white dark:border-zinc-800 dark:bg-zinc-900">
         <div className="flex items-center gap-2.5 px-4 pb-3 pt-5">
-          {/* 品牌标记（取自应用图标） */}
-          <div className="flex h-8 w-8 items-center justify-center rounded-[8px] bg-gradient-to-b from-amber-300 to-amber-500 text-[15px] font-black text-zinc-950 shadow-sm">
+          {/* 品牌标记：单色块 */}
+          <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-zinc-900 text-[15px] font-black text-white shadow-sm dark:bg-white dark:text-zinc-900">
             S
           </div>
           <div className="leading-tight">
@@ -41,12 +41,12 @@ export default function App() {
               className={cn(
                 "group relative flex w-full items-center rounded-lg px-3 py-[7px] text-[13px] font-medium transition-colors duration-150",
                 page === item.key
-                  ? "bg-zinc-900/5 text-zinc-900 dark:bg-zinc-100/10 dark:text-zinc-50"
+                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-400/10 dark:text-indigo-300"
                   : "text-zinc-500 hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
               )}
             >
               {page === item.key && (
-                <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-amber-500" />
+                <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-indigo-500" />
               )}
               {item.label}
             </button>

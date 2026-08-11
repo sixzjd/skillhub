@@ -5,14 +5,17 @@ type ButtonVariant = "default" | "secondary" | "ghost" | "outline" | "destructiv
 type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variants: Record<ButtonVariant, string> = {
-  default: "bg-zinc-900 text-white hover:bg-zinc-700 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-zinc-200",
-  secondary: "bg-zinc-100 text-zinc-900 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-100 dark:hover:bg-zinc-700",
+  default:
+    "bg-indigo-600 text-white hover:bg-indigo-500 dark:bg-indigo-400 dark:text-indigo-950 dark:hover:bg-indigo-300 shadow-sm",
+  secondary:
+    "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700",
   ghost: "hover:bg-zinc-100 dark:hover:bg-zinc-800",
-  outline: "border border-zinc-200 bg-transparent hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800",
+  outline:
+    "border border-zinc-200 bg-transparent text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
   destructive: "bg-red-600 text-white hover:bg-red-500",
-  link: "text-zinc-900 underline-offset-4 hover:underline dark:text-zinc-100",
+  link: "text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400",
   accent:
-    "bg-gradient-to-b from-amber-400 to-amber-500 text-zinc-950 shadow-sm hover:from-amber-300 hover:to-amber-400",
+    "bg-gradient-to-b from-indigo-500 to-indigo-700 text-white shadow-sm hover:from-indigo-400 hover:to-indigo-600 dark:from-indigo-400 dark:to-indigo-600 dark:text-white",
 };
 
 const sizes: Record<ButtonSize, string> = {

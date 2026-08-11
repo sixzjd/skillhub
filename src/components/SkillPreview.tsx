@@ -27,7 +27,7 @@ export function SkillPreview({
       >
         <div className="flex items-center justify-between gap-3 border-b border-zinc-100 bg-zinc-50/60 px-4 py-3 dark:border-zinc-800 dark:bg-zinc-950/40">
           <div className="flex min-w-0 items-center gap-2">
-            <span className="h-2 w-2 shrink-0 rounded-full bg-gradient-to-b from-amber-400 to-amber-500" />
+            <span className="h-2 w-2 shrink-0 rounded-full bg-indigo-500" />
             <h3 className="truncate text-sm font-semibold">{name}</h3>
           </div>
           <Button variant="ghost" size="sm" onClick={onClose}>

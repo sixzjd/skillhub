@@ -32,7 +32,7 @@ export function SettingsPage() {
                 onClick={() => setLocale(l)}
                 className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
                   locale === l
-                    ? "border-zinc-900 bg-zinc-900 text-white dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-900"
+                    ? "border-indigo-600 bg-indigo-600 text-white dark:border-indigo-400 dark:bg-indigo-400 dark:text-indigo-950"
                     : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
                 }`}
               >
