@@ -10,6 +10,7 @@ export const ja: Messages = {
     library: "ライブラリ",
     market: "マーケット",
     settings: "設定",
+    trash: "ゴミ箱",
   },
   agents: {
     title: "インストール済みエージェント",
@@ -25,6 +26,8 @@ export const ja: Messages = {
     remnant: "残存",
     skills: "スキル",
     viewSkills: "スキルを表示",
+    delete: "削除",
+    deleteConfirm: "このスキルを削除しますか？リンクは直接削除され、実ディレクトリはゴミ箱に移動されます。",
   },
   library: {
     title: "ローカルライブラリ",
@@ -76,6 +79,18 @@ export const ja: Messages = {
     ssot: "SSOT ディレクトリ",
     about: "情報",
     version: "バージョン",
+  },
+  trash: {
+    title: "ゴミ箱",
+    subtitle: "削除したスキルはここから復元または完全に削除できます",
+    empty: "ゴミ箱は空です",
+    restore: "復元",
+    emptyAll: "ゴミ箱を空にする",
+    emptyConfirm: "ゴミ箱のすべての内容を完全に削除しますか？この操作は取り消せません。",
+    origin: "元",
+    deletedAt: "削除日時",
+    restored: "復元しました",
+    emptied: "ゴミ箱を空にしました",
   },
   common: {
     cancel: "キャンセル",

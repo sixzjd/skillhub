@@ -1,4 +1,4 @@
-use crate::agent::{home_dir, ssot_skills_dir};
+use crate::agent::ssot_skills_dir;
 use serde::{Deserialize, Serialize};
 use std::fs;
 use std::path::Path;
@@ -11,6 +11,10 @@ pub struct LibrarySkill {
     pub description: String,
     pub has_skill_md: bool,
     pub size_bytes: u64,
+    /// 是否存在更新的源（某个已安装 agent 的同名真实目录比库新）
+    pub has_newer: bool,
+    /// 更新的源来自哪个 agent（display 名）
+    pub source: String,
 }
 
 /// 导入结果
@@ -37,12 +41,15 @@ pub fn list_library() -> Vec<LibrarySkill> {
             let has_md = p.join("SKILL.md").exists();
             let desc = read_desc(&p.join("SKILL.md"));
             let size = dir_size(&p);
+            let (has_newer, source) = newer_source(&p, &name);
             out.push(LibrarySkill {
                 name,
                 path: p.to_string_lossy().to_string(),
                 description: desc,
                 has_skill_md: has_md,
                 size_bytes: size,
+                has_newer,
+                source,
             });
         }
     }
@@ -84,6 +91,29 @@ fn read_desc(skill_md: &Path) -> String {
     String::new()
 }
 
+/// 判断库技能是否有更新的源：扫描已安装 agent 的 skills 目录里同名真实目录，
+/// 若任一新于库目录本身，则返回 (true, agent display)。
+fn newer_source(lib_dir: &Path, name: &str) -> (bool, String) {
+    use std::time::SystemTime;
+    let lib_time = std::fs::metadata(lib_dir).and_then(|m| m.modified()).ok();
+    let mut best: Option<(String, SystemTime)> = None;
+    for kind in crate::agent::all_agents() {
+        let Some(skills_dir) = kind.detect() else { continue };
+        let p = skills_dir.join(name);
+        if !p.is_symlink() && p.is_dir() {
+            if let Ok(t) = std::fs::metadata(&p).and_then(|m| m.modified()) {
+                if best.as_ref().map(|(_, bt)| t > *bt).unwrap_or(true) {
+                    best = Some((kind.display().to_string(), t));
+                }
+            }
+        }
+    }
+    match (lib_time, best) {
+        (Some(lt), Some((disp, st))) => (st > lt, disp),
+        _ => (false, String::new()),
+    }
+}
+
 fn dir_size(p: &Path) -> u64 {
     let mut total = 0u64;
     if let Ok(entries) = fs::read_dir(p) {
@@ -120,6 +150,8 @@ pub fn import_from_path(src: &str, name: &str) -> ImportResult {
         let _ = fs::rename(&dst, &backup);
     }
     copy_dir_all(src_p, &dst).ok();
+    // 导入后把源 agent 的真实目录转成指向库的链接（省空间、统一管理）
+    crate::agent::dedupe_agent_source(src_p, name);
     result.imported.push(name.to_string());
     result
 }
@@ -174,7 +206,7 @@ pub fn read_skill_md_at(skill_dir: &str) -> Result<String, String> {
     Err(format!("{skill_dir} 下没有 SKILL.md 或 .md 文件"))
 }
 
-/// 从本地库删除技能（移入废纸篓，不硬删）
+/// 从本地库删除技能（移入 app 回收站，不硬删）
 pub fn remove_from_library(name: &str) -> std::io::Result<()> {
     let ssot = ssot_skills_dir();
     let item = ssot.join(name);
@@ -184,11 +216,7 @@ pub fn remove_from_library(name: &str) -> std::io::Result<()> {
             format!("{name} 不存在"),
         ));
     }
-    let trash = home_dir().join(".Trash");
-    fs::create_dir_all(&trash).ok();
-    let stamp = chrono::Local::now().format("%Y%m%d%H%M%S").to_string();
-    let dest = trash.join(format!("skillhub-{name}-{stamp}"));
-    fs::rename(&item, &dest)?;
+    crate::trash::move_to_trash("library", None, name, &item)?;
     Ok(())
 }
 

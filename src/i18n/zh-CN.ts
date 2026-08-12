@@ -8,6 +8,7 @@ export const zhCN = {
     library: "本地库",
     market: "市场",
     settings: "设置",
+    trash: "回收站",
   },
   agents: {
     title: "已安装的 Agent",
@@ -23,6 +24,8 @@ export const zhCN = {
     remnant: "残留",
     skills: "个技能",
     viewSkills: "查看技能",
+    delete: "删除",
+    deleteConfirm: "确定删除此技能？链接将直接移除，真实目录将移入回收站。",
   },
   library: {
     title: "本地技能库",
@@ -74,6 +77,18 @@ export const zhCN = {
     ssot: "SSOT 目录",
     about: "关于",
     version: "版本",
+  },
+  trash: {
+    title: "回收站",
+    subtitle: "已删除的技能可从此处恢复或彻底清空",
+    empty: "回收站为空",
+    restore: "恢复",
+    emptyAll: "清空回收站",
+    emptyConfirm: "确定要永久删除回收站中的所有内容？此操作不可撤销。",
+    origin: "来源",
+    deletedAt: "删除时间",
+    restored: "已恢复",
+    emptied: "回收站已清空",
   },
   common: {
     cancel: "取消",

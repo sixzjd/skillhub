@@ -26,7 +26,7 @@ body,
 }
 
 body {
-  font-size: 14px;
+  font-size: 15px;
   line-height: 1.5;
 }
 
@@ -52,10 +52,10 @@ body {
   background: rgb(255 255 255 / 0.26);
 }
 
-/* 选区：单强调色 indigo */
+/* 选区：红色强调 */
 ::selection {
-  background: rgb(99 102 241 / 0.18);
+  background: rgb(192 84 62 / 0.18);
 }
 .dark ::selection {
-  background: rgb(129 140 248 / 0.26);
+  background: rgb(224 122 100 / 0.26);
 }

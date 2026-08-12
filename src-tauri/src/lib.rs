@@ -2,6 +2,7 @@ mod agent;
 mod library;
 mod market;
 mod sync;
+mod trash;
 
 use serde::Serialize;
 
@@ -43,10 +44,10 @@ fn remove_from_library(name: String) -> Result<(), String> {
     library::remove_from_library(&name).map_err(|e| e.to_string())
 }
 
-/// 同步 SSOT 到指定 agent
+/// 同步 SSOT 到指定 agent（skills 为空则同步全部）
 #[tauri::command]
-fn run_sync(target_keys: Vec<String>) -> sync::SyncReport {
-    sync::run_sync(&target_keys)
+fn run_sync(target_keys: Vec<String>, skills: Vec<String>) -> sync::SyncReport {
+    sync::run_sync(&target_keys, &skills)
 }
 
 /// 列出某 agent 的 skills 目录
@@ -95,6 +96,30 @@ async fn install_market_skill(
     market::install_market_skill(&market, &skill_source, &target_dir).await
 }
 
+/// 回收站：列出全部条目
+#[tauri::command]
+fn list_trash() -> Vec<trash::TrashItem> {
+    trash::list_trash()
+}
+
+/// 回收站：恢复指定条目
+#[tauri::command]
+fn restore_trash_item(id: String) -> Result<(), String> {
+    trash::restore_trash(&id)
+}
+
+/// 回收站：清空（物理删除）
+#[tauri::command]
+fn empty_trash() -> Result<(), String> {
+    trash::empty_trash()
+}
+
+/// 删除某 agent 里的技能（指针→unlink，真实目录→回收站）
+#[tauri::command]
+fn delete_agent_skill(agent_key: String, name: String) -> Result<String, String> {
+    crate::sync::delete_agent_skill(&agent_key, &name)
+}
+
 /// 版本信息
 #[derive(Serialize)]
 struct VersionInfo {
@@ -129,6 +154,10 @@ pub fn run() {
             remove_market,
             fetch_market_skills,
             install_market_skill,
+            list_trash,
+            restore_trash_item,
+            empty_trash,
+            delete_agent_skill,
             app_info,
         ])
         .run(tauri::generate_context!())

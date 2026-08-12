@@ -1,4 +1,4 @@
-name: Build
+name: Build & Release
 
 on:
   push:
@@ -38,12 +38,6 @@ jobs:
         with:
           version: 11
 
-      - name: Install Linux dependencies (Linux only)
-        if: matrix.platform == 'ubuntu-latest'
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y libwebkit2gtk-4.1-dev libayatana-appindicator3-dev librsvg2-dev patchelf
-
       - name: Setup Rust
         uses: dtolnay/rust-toolchain@stable
 
@@ -77,3 +71,45 @@ jobs:
             src-tauri/target/release/bundle/**/*.msi
             src-tauri/target/release/bundle/**/*.exe
           if-no-files-found: ignore
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v') || github.event_name == 'workflow_dispatch'
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Prepare release assets
+        run: |
+          mkdir -p release-assets
+          find artifacts -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.msi" -o -name "*.exe" \) -exec cp {} release-assets/ \;
+          ls -la release-assets/
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: SkillHub ${{ github.event.inputs.version || github.ref_name }}
+          body: |
+            ## SkillHub ${{ github.event.inputs.version || github.ref_name }}
+
+            ### Downloads
+            - **macOS**: `.dmg` installer
+            - **Windows**: `.msi` installer
+
+            ### What's New
+            - Red + beige warm theme UI
+            - Trash/recycle bin for deleted skills
+            - Selective skill sync (choose which skills to sync)
+            - Improved sidebar with app icon
+          files: release-assets/*
+          draft: false
+          prerelease: false
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

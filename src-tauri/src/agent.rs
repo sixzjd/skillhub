@@ -282,6 +282,53 @@ pub fn ssot_skills_dir() -> PathBuf {
     home_dir().join(".agents/skills")
 }
 
+/// 路径是否位于某个 agent 的 skills 目录下
+pub fn is_under_agent_skills_dir(path: &Path) -> bool {
+    all_agents().iter().any(|kind| {
+        kind.skill_dir_candidates()
+            .iter()
+            .any(|c| path.starts_with(c))
+    })
+}
+
+/// 创建指向目录的符号链接（跨平台）
+pub fn symlink_dir(src: &Path, dst: &Path) -> std::io::Result<()> {
+    #[cfg(unix)]
+    {
+        std::os::unix::fs::symlink(src, dst)
+    }
+    #[cfg(windows)]
+    {
+        std::os::windows::fs::symlink_dir(src, dst)
+    }
+}
+
+/// 导入到库后，把源 agent 的真实技能目录替换成指向库的链接（省空间、统一由库管理）。
+/// 仅当 src 是真实目录、位于某个 agent 的 skills 目录下、且不是库自身时才转换。
+/// 建链接失败会回滚（还原原目录）。
+pub fn dedupe_agent_source(src: &Path, name: &str) {
+    if !is_under_agent_skills_dir(src) || src.is_symlink() || !src.is_dir() {
+        return;
+    }
+    let ssot = ssot_skills_dir().join(name);
+    if src == ssot || src == ssot.canonicalize().unwrap_or(ssot.clone()) {
+        return;
+    }
+    let backup = src.with_file_name(format!(
+        ".{}.skillhub-bak-{}",
+        src.file_name().unwrap_or_default().to_string_lossy(),
+        std::process::id()
+    ));
+    if std::fs::rename(src, &backup).is_err() {
+        return;
+    }
+    if symlink_dir(&ssot, src).is_err() {
+        let _ = std::fs::rename(&backup, src);
+        return;
+    }
+    let _ = std::fs::remove_dir_all(&backup);
+}
+
 /// 所有受支持的 agent
 pub fn all_agents() -> Vec<AgentKind> {
     use AgentKind::*;

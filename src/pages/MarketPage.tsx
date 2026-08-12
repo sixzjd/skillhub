@@ -110,7 +110,7 @@ export function MarketPage() {
     <div className="space-y-6">
       <div>
         <h1 className="text-xl font-semibold">{t.market.title}</h1>
-        <p className="text-sm text-zinc-500">{t.market.subtitle}</p>
+        <p className="text-sm text-[#8a7b6c]">{t.market.subtitle}</p>
       </div>
 
       {error && (
@@ -132,13 +132,13 @@ export function MarketPage() {
         <CardContent>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
-              className="rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-900 dark:border-zinc-700 dark:focus:border-zinc-100"
+              className="rounded-md border border-[#d9cfc4] bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-[#9a8b7c] focus:border-[#231c18] dark:border-[#3e342c] dark:focus:border-[#e8dfd5]"
               placeholder={t.market.owner}
               value={owner}
               onChange={(e) => setOwner(e.target.value)}
             />
             <input
-              className="rounded-md border border-zinc-200 bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-zinc-400 focus:border-zinc-900 dark:border-zinc-700 dark:focus:border-zinc-100"
+              className="rounded-md border border-[#d9cfc4] bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-[#9a8b7c] focus:border-[#231c18] dark:border-[#3e342c] dark:focus:border-[#e8dfd5]"
               placeholder={t.market.repo}
               value={repo}
               onChange={(e) => setRepo(e.target.value)}
@@ -157,7 +157,7 @@ export function MarketPage() {
           <Card
             key={m.id}
             className={`cursor-pointer transition-colors ${
-              active?.id === m.id ? "ring-2 ring-zinc-900 dark:ring-zinc-100" : "hover:bg-zinc-50 dark:hover:bg-zinc-800/50"
+              active?.id === m.id ? "ring-2 ring-[#c0543e] dark:ring-[#e07a64]" : "hover:bg-[#f0e8df] dark:hover:bg-[#2e2520]/50"
             }`}
             onClick={() => openMarket(m)}
           >
@@ -172,7 +172,7 @@ export function MarketPage() {
                   )}
                   {isCustom(m) && (
                     <button
-                      className="rounded px-1 text-zinc-400 transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50"
+                      className="rounded px-1 text-[#9a8b7c] transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50"
                       title={t.market.removeMarket}
                       onClick={(e) => {
                         e.stopPropagation();
@@ -206,11 +206,11 @@ export function MarketPage() {
           </CardHeader>
           <CardContent>
             {loadingMarket ? (
-              <p className="text-sm text-zinc-500">{t.common.loading}</p>
+              <p className="text-sm text-[#8a7b6c]">{t.common.loading}</p>
             ) : skills.length === 0 ? (
-              <p className="py-4 text-center text-sm text-zinc-400">{t.market.empty}</p>
+              <p className="py-4 text-center text-sm text-[#9a8b7c]">{t.market.empty}</p>
             ) : (
-              <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
+              <div className="divide-y divide-[#e8dfd5] dark:divide-[#2e2520]">
                 {skills.map((s) => {
                   const isInstalled = installedNames.has(s.name);
                   return (
@@ -218,11 +218,11 @@ export function MarketPage() {
                       <div className="min-w-0 flex-1">
                         <span className="text-sm font-medium">{s.name}</span>
                         {s.description && (
-                          <p className="mt-0.5 line-clamp-2 text-xs text-zinc-500">{s.description}</p>
+                          <p className="mt-0.5 line-clamp-2 text-xs text-[#8a7b6c]">{s.description}</p>
                         )}
                       </div>
                       {isInstalled ? (
-                        <span className="shrink-0 text-xs text-zinc-400">{t.market.installed}</span>
+                        <span className="shrink-0 text-xs text-[#9a8b7c]">{t.market.installed}</span>
                       ) : (
                         <Button
                           size="sm"

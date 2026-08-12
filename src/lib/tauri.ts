@@ -81,8 +81,8 @@ export const readSkillMdAt = (path: string) =>
   invoke<string>("read_skill_md_at", { path });
 export const removeFromLibrary = (name: string) =>
   invoke<void>("remove_from_library", { name });
-export const runSync = (targetKeys: string[]) =>
-  invoke<SyncReport>("run_sync", { targetKeys });
+export const runSync = (targetKeys: string[], skills: string[] = []) =>
+  invoke<SyncReport>("run_sync", { targetKeys, skills });
 export const agentSkillsDir = (key: string) =>
   invoke<string | null>("agent_skills_dir", { key });
 export const defaultMarketplaces = () =>
@@ -97,3 +97,22 @@ export const fetchMarketSkills = (market: Marketplace) =>
 export const installMarketSkill = (market: Marketplace, skillSource: string, targetDir: string) =>
   invoke<void>("install_market_skill", { market, skillSource, targetDir });
 export const appInfo = () => invoke<VersionInfo>("app_info");
+
+// ---------- trash ----------
+export interface TrashItem {
+  id: string;
+  origin: string;
+  agent_key: string | null;
+  agent_display: string | null;
+  name: string;
+  original_path: string;
+  moved_to: string;
+  deleted_at: string;
+}
+
+export const listTrash = () => invoke<TrashItem[]>("list_trash");
+export const restoreTrashItem = (id: string) =>
+  invoke<void>("restore_trash_item", { id });
+export const emptyTrash = () => invoke<void>("empty_trash");
+export const deleteAgentSkill = (agentKey: string, name: string) =>
+  invoke<string>("delete_agent_skill", { agentKey, name });

@@ -1,0 +1,177 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>SkillHub — Lumen · 极简明亮</title>
+<style>
+  :root{
+    --bg:#fafafa; --panel:#ffffff; --panel-2:#f4f4f5;
+    --border:#e8e8ea; --border-2:#ececee;
+    --ink:#18181b; --ink-2:#3f3f46; --ink-3:#71717a; --ink-4:#a1a1aa;
+    --brand:#4f46e5; --brand-ink:#4338ca; --brand-wash:#eef2ff;
+    --ok:#16a34a; --ok-wash:#f0fdf4;
+    --warn:#b45309; --warn-wash:#fef3c7;
+    --muted:#a1a1aa;
+  }
+  *{box-sizing:border-box; margin:0; padding:0}
+  body{background:var(--bg); color:var(--ink); font-family:-apple-system,BlinkMacSystemFont,"SF Pro Text","Segoe UI",Roboto,"PingFang SC",sans-serif; font-size:13px; line-height:1.5; -webkit-font-smoothing:antialiased; text-rendering:optimizeLegibility}
+  .app{display:flex; height:100vh}
+
+  /* ---- 侧边栏 ---- */
+  .side{width:216px; flex-shrink:0; background:var(--panel); border-right:1px solid var(--border); display:flex; flex-direction:column}
+  .brand{display:flex; align-items:center; gap:10px; padding:20px 18px 14px}
+  .mark{width:30px; height:30px; border-radius:9px; background:#18181b; color:#fff; display:flex; align-items:center; justify-content:center; font-weight:800; font-size:15px; letter-spacing:-.02em}
+  .brand b{font-size:14px; letter-spacing:-.01em}
+  .brand span{display:block; color:var(--ink-4); font-size:10.5px; letter-spacing:.04em}
+  nav{flex:1; padding:6px 12px; display:flex; flex-direction:column; gap:2px}
+  .nav-item{display:flex; align-items:center; gap:9px; padding:8px 10px; border-radius:8px; color:var(--ink-3); font-weight:500; font-size:13px; cursor:pointer; position:relative}
+  .nav-item:hover{background:var(--panel-2); color:var(--ink)}
+  .nav-item.on{background:var(--brand-wash); color:var(--brand-ink)}
+  .nav-item.on::before{content:""; position:absolute; left:-12px; top:22%; height:56%; width:3px; border-radius:99px; background:var(--brand)}
+  .nav-item .ico{width:16px; height:16px; opacity:.9}
+  .side-foot{border-top:1px solid var(--border); padding:12px 18px; color:var(--ink-4); font-family:ui-monospace,SFMono-Regular,Menlo,monospace; font-size:10.5px; line-height:1.7}
+
+  /* ---- 主区 ---- */
+  .main{flex:1; min-width:0; overflow-y:auto}
+  .wrap{max-width:980px; padding:28px 32px 120px; margin:0 auto}
+  .head{display:flex; align-items:flex-end; justify-content:space-between; margin-bottom:22px}
+  .head h1{font-size:20px; font-weight:700; letter-spacing:-.02em}
+  .head p{color:var(--ink-3); font-size:12.5px; margin-top:3px}
+
+  .toolbar{display:flex; align-items:center; gap:8px; margin-bottom:16px}
+  .search{flex:1; display:flex; align-items:center; gap:8px; background:var(--panel); border:1px solid var(--border); border-radius:9px; padding:8px 11px; color:var(--ink-3)}
+  .search input{border:none; outline:none; background:none; flex:1; font-size:13px; color:var(--ink)}
+  .search input::placeholder{color:var(--ink-4)}
+  .chip{padding:6px 12px; border-radius:99px; border:1px solid var(--border); background:var(--panel); color:var(--ink-3); font-size:12px; cursor:pointer}
+  .chip.on{background:var(--ink); color:#fff; border-color:var(--ink)}
+
+  .agents{display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap}
+  .agent{display:flex; align-items:center; gap:7px; padding:5px 10px; border-radius:99px; border:1px solid var(--border); background:var(--panel); font-size:12px; color:var(--ink-2)}
+  .agent .dot{width:8px; height:8px; border-radius:99px}
+  .agent .dot.on{background:var(--ok)}
+  .agent .dot.off{background:var(--muted)}
+  .agent .dot.warn{background:var(--warn)}
+
+  .grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:12px}
+  .card{background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:14px; cursor:pointer; transition:transform .12s, box-shadow .12s, border-color .12s}
+  .card:hover{transform:translateY(-1px); box-shadow:0 4px 14px rgba(24,24,27,.05); border-color:#dcdcdf}
+  .card .top{display:flex; align-items:flex-start; justify-content:space-between; gap:8px}
+  .card h3{font-size:13.5px; font-weight:600; letter-spacing:-.01em}
+  .card .tag{font-size:10px; color:var(--ink-4); white-space:nowrap}
+  .card p{color:var(--ink-3); font-size:11.5px; margin-top:6px; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden}
+  .card .row{margin-top:12px; display:flex; align-items:center; justify-content:space-between}
+  .status{display:inline-flex; align-items:center; gap:5px; font-size:11px; color:var(--ink-3)}
+  .status .dot{width:6px; height:6px; border-radius:99px}
+  .s-on .dot{background:var(--ok)} .s-on{color:var(--ok)}
+  .s-no .dot{background:var(--muted)} .s-no{color:var(--ink-4)}
+  .s-rm .dot{background:var(--warn)} .s-rm{color:var(--warn)}
+  .btn{border:none; cursor:pointer; border-radius:8px; font-size:12px; font-weight:600; padding:6px 12px; background:var(--panel-2); color:var(--ink-2)}
+  .btn:hover{background:#e4e4e7}
+  .btn.primary{background:var(--brand); color:#fff}
+  .btn.primary:hover{background:var(--brand-ink)}
+  .btn.ghost{background:none; color:var(--ink-3)}
+  .btn.ghost:hover{background:var(--panel-2); color:var(--ink)}
+
+  .hint{margin-top:16px; color:var(--ink-4); font-size:11.5px; text-align:center}
+
+  /* ---- 底部粘性操作栏 ---- */
+  .dock{position:fixed; left:50%; bottom:18px; transform:translateX(-50%); background:rgba(255,255,255,.92); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); border:1px solid var(--border); border-radius:14px; box-shadow:0 8px 28px rgba(24,24,27,.10); padding:10px 12px; display:flex; align-items:center; gap:14px; max-width:720px; width:calc(100% - 360px)}
+  .dock .sel{font-size:12.5px; color:var(--ink-2)}
+  .dock .sel b{color:var(--brand-ink)}
+  .dock .sp{flex:1}
+  .dock .btn{padding:8px 16px}
+</style>
+</head>
+<body>
+<div class="app">
+  <aside class="side">
+    <div class="brand">
+      <div class="mark">S</div>
+      <div><b>SkillHub</b><span>统一技能库</span></div>
+    </div>
+    <nav>
+      <div class="nav-item on">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 3h4v4H2zM9 3h5v4H9zM2 9h4v4H2zM9 9h5v4H9z"/></svg>技能库
+      </div>
+      <div class="nav-item">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="4" r="1.6"/><circle cx="3" cy="9" r="1.6"/><circle cx="13" cy="9" r="1.6"/><path d="M3 9c1.6 0 2.6-1 3-2.5M13 9c-1.6 0-2.6-1-3-2.5M8 5.6V8"/></svg>代理
+      </div>
+      <div class="nav-item">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><path d="M2 4h12M2 8h12M2 12h7"/></svg>市场
+      </div>
+      <div class="nav-item">
+        <svg class="ico" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4"><circle cx="8" cy="8" r="2.6"/><path d="M8 2v2M8 12v2M2 8h2M12 8h2" stroke-linecap="round"/></svg>设置
+      </div>
+    </nav>
+    <div class="side-foot">SSOT<br>~/.agents/skills</div>
+  </aside>
+
+  <main class="main">
+    <div class="wrap">
+      <div class="head">
+        <div><h1>技能库</h1><p>12 个技能 · 已同步到 1 个代理 · 0 个残留</p></div>
+        <button class="btn primary">导入技能</button>
+      </div>
+
+      <div class="agents">
+        <span class="agent"><span class="dot on"></span>Claude Code</span>
+        <span class="agent"><span class="dot on"></span>Codex</span>
+        <span class="agent"><span class="dot on"></span>CodeWhale</span>
+        <span class="agent"><span class="dot off"></span>Gemini</span>
+        <span class="agent"><span class="dot off"></span>Cursor</span>
+        <span class="agent"><span class="dot warn"></span>Qoder</span>
+      </div>
+
+      <div class="toolbar">
+        <div class="search">
+          <svg width="14" height="14" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5"><circle cx="7" cy="7" r="4.5"/><path d="m10.5 10.5 3 3"/></svg>
+          <input placeholder="搜索技能…">
+        </div>
+        <span class="chip on">全部</span>
+        <span class="chip">已安装</span>
+        <span class="chip">未安装</span>
+        <span class="chip">残留</span>
+      </div>
+
+      <div class="grid" id="grid"></div>
+      <div class="hint">点击卡片预览 SKILL.md · 勾选后由底部操作栏批量同步</div>
+    </div>
+  </main>
+</div>
+
+<div class="dock">
+  <span class="sel">已选 <b>3</b> 个技能</span>
+  <span class="sp"></span>
+  <button class="btn ghost">全部选择</button>
+  <button class="btn">同步到 2 个代理</button>
+  <button class="btn primary">更新所选</button>
+</div>
+
+<script>
+  const skills=[
+    ["gsap-core","动画核心引擎","gsap-*",0],["ui-ux-pro-max","UI/UX 设计方法论","design",0],
+    ["fakegps-release","位置模拟（开发）","dev",1],["mineru","文档解析","doc",1],
+    ["gsap-react","React 动画集成","gsap-*",1],["canvas-design","视觉设计","design",1],
+    ["doc-coauthoring","文档协作","writing",1],["claude-api","Claude API","api",1],
+    ["gsap-timeline","时间线动画","gsap-*",1],["file-organizer","文件整理","dev",1],
+    ["mcp-builder","构建 MCP 服务","dev",1],["webapp-testing","网页测试","dev",1],
+  ];
+  const grid=document.getElementById('grid');
+  skills.forEach(([n,d,tag,st],i)=>{
+    const s=st===0?"s-no":st===1?"s-on":"s-rm";
+    const label=st===0?"未安装":st===1?"已安装":"残留";
+    const chk=i<3?"<input type=checkbox checked>":"<input type=checkbox>";
+    grid.insertAdjacentHTML('beforeend',`
+      <div class="card">
+        <div class="top"><h3>${n}</h3><span class="tag">${tag}</span></div>
+        <p>${d} —— 一份描述，说明这个技能解决什么问题、怎么用。</p>
+        <div class="row">
+          <span class="status s-${s}"><span class="dot"></span>${label}</span>
+          ${chk}
+        </div>
+      </div>`);
+  });
+</script>
+</body>
+</html>

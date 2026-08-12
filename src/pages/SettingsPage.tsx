@@ -32,8 +32,8 @@ export function SettingsPage() {
                 onClick={() => setLocale(l)}
                 className={`rounded-md border px-3 py-1.5 text-sm transition-colors ${
                   locale === l
-                    ? "border-indigo-600 bg-indigo-600 text-white dark:border-indigo-400 dark:bg-indigo-400 dark:text-indigo-950"
-                    : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
+                    ? "border-[#c0543e] bg-[#c0543e] text-white dark:border-[#c0543e] dark:bg-[#c0543e] dark:text-white"
+                    : "border-[#d9cfc4] hover:bg-[#f0e8df] dark:border-[#3e342c] dark:hover:bg-[#2e2520]"
                 }`}
               >
                 {localeNames[l]}
@@ -48,7 +48,7 @@ export function SettingsPage() {
           <CardTitle>{t.settings.ssot}</CardTitle>
         </CardHeader>
         <CardContent>
-          <code className="rounded bg-zinc-100 px-2 py-1 text-sm dark:bg-zinc-800">
+          <code className="rounded bg-[#ebe3da] px-2 py-1 text-sm dark:bg-[#2e2520]">
             {info?.ssot ?? "~/.agents/skills"}
           </code>
         </CardContent>

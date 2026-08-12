@@ -3,7 +3,7 @@ import { useI18n } from "../hooks/useI18n";
 import { listLibrary, runSync, removeFromLibrary, scanAll, importFromPath, readSkillMdAt } from "../lib/tauri";
 import type { LibrarySkill, SyncReport, AgentScan } from "../lib/tauri";
 import { Button } from "../components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Checkbox } from "../components/ui/checkbox";
 import { SkillPreview } from "../components/SkillPreview";
 
@@ -12,6 +12,7 @@ export function LibraryPage() {
   const [skills, setSkills] = useState<LibrarySkill[]>([]);
   const [agents, setAgents] = useState<AgentScan[]>([]);
   const [selectedAgents, setSelectedAgents] = useState<Record<string, boolean>>({});
+  const [selectedSkills, setSelectedSkills] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [syncing, setSyncing] = useState(false);
   const [report, setReport] = useState<SyncReport | null>(null);
@@ -39,11 +40,30 @@ export function LibraryPage() {
     load();
   }, [load]);
 
+  // Skill selection
+  const toggleSkill = (name: string) =>
+    setSelectedSkills((s) => {
+      const next = new Set(s);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+
+  const allSkillsSelected = skills.length > 0 && skills.every((s) => selectedSkills.has(s.name));
+  const toggleAllSkills = () => {
+    if (allSkillsSelected) {
+      setSelectedSkills(new Set());
+    } else {
+      setSelectedSkills(new Set(skills.map((s) => s.name)));
+    }
+  };
+
+  // Agent selection
   const toggleAgent = (key: string) =>
     setSelectedAgents((s) => ({ ...s, [key]: !s[key] }));
   const allAgentsSelected =
     agents.length > 0 && agents.every((a) => selectedAgents[a.key]);
-  const toggleAll = () => {
+  const toggleAllAgents = () => {
     if (allAgentsSelected) {
       setSelectedAgents({});
     } else {
@@ -62,7 +82,8 @@ export function LibraryPage() {
     setSyncing(true);
     setError(null);
     try {
-      const res = await runSync(targets);
+      const skillList = selectedSkills.size > 0 ? Array.from(selectedSkills) : [];
+      const res = await runSync(targets, skillList);
       setReport(res);
     } catch (e) {
       setError(String(e));
@@ -117,139 +138,116 @@ export function LibraryPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <div>
-        <h1 className="text-xl font-semibold">{t.library.title}</h1>
-        <p className="text-sm text-zinc-500">{t.library.subtitle}</p>
-      </div>
+    <div className="relative flex min-h-screen flex-col">
+      <div className="flex-1 space-y-6 p-6 pb-24">
+        <div>
+          <h1 className="text-xl font-semibold">{t.library.title}</h1>
+          <p className="text-sm text-[#8a7b6c]">{t.library.subtitle}</p>
+        </div>
 
-      {error && (
-        <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
-          <CardContent className="p-4 text-sm text-red-600 dark:text-red-300">{error}</CardContent>
-        </Card>
-      )}
+        {error && (
+          <Card className="border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-950">
+            <CardContent className="p-4 text-sm text-red-600 dark:text-red-300">{error}</CardContent>
+          </Card>
+        )}
 
-      {/* 技能列表 */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>{t.library.title}</CardTitle>
-            <span className="text-xs text-zinc-400">{skills.length} items</span>
-          </div>
-        </CardHeader>
-        <CardContent>
-          {loading ? (
-            <p className="text-sm text-zinc-500">{t.common.loading}</p>
-          ) : skills.length === 0 ? (
-            <p className="py-6 text-center text-sm text-zinc-400">{t.library.empty}</p>
-          ) : (
-            <div className="divide-y divide-zinc-100 dark:divide-zinc-800">
-              {skills.map((s) => {
-                const hasSource = !!agentSource[s.name];
-                return (
-                  <div key={s.name} className="flex items-center gap-3 py-2">
-                    <div className="min-w-0 flex-1">
-                      <button
-                        className="text-left"
-                        onClick={() => openPreview(s.name, s.path)}
-                        title={t.library.preview}
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className="text-sm font-medium underline-offset-2 hover:underline">{s.name}</span>
-                          {!s.has_skill_md && (
-                            <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
-                              {t.library.noSkillMd}
-                            </span>
-                          )}
-                        </div>
-                      </button>
-                      {s.description && (
-                        <p className="mt-0.5 line-clamp-1 text-xs text-zinc-500">{s.description}</p>
-                      )}
-                      <p className="mt-0.5 truncate font-mono text-[10px] text-zinc-400">{s.path}</p>
-                    </div>
-                    <span className="shrink-0 text-xs text-zinc-400">{fmtSize(s.size_bytes)}</span>
-                    <Button variant="ghost" size="sm" onClick={() => openPreview(s.name, s.path)}>
-                      {t.library.preview}
-                    </Button>
-                    {hasSource ? (
-                      <Button variant="outline" size="sm" onClick={() => doUpdate(s.name)}>
-                        {t.library.update}
-                      </Button>
-                    ) : (
-                      <Button variant="ghost" size="sm" disabled title="No agent source">
-                        {t.library.update}
-                      </Button>
-                    )}
-                    <Button variant="ghost" size="sm" onClick={() => doRemove(s.name)}>
-                      {t.library.remove}
-                    </Button>
-                  </div>
-                );
-              })}
+        {/* 技能列表 */}
+        <Card>
+          <CardHeader>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Checkbox
+                  checked={allSkillsSelected}
+                  onChange={toggleAllSkills}
+                  aria-label="Select all skills"
+                />
+                <CardTitle>{t.library.title}</CardTitle>
+              </div>
+              <span className="text-xs text-[#9a8b7c]">{skills.length} items</span>
             </div>
-          )}
-        </CardContent>
-      </Card>
+          </CardHeader>
+          <CardContent>
+            {loading ? (
+              <p className="text-sm text-[#8a7b6c]">{t.common.loading}</p>
+            ) : skills.length === 0 ? (
+              <p className="py-6 text-center text-sm text-[#9a8b7c]">{t.library.empty}</p>
+            ) : (
+              <div className="divide-y divide-[#e8dfd5] dark:divide-[#2e2520]">
+                {skills.map((s) => {
+                  const hasSource = !!agentSource[s.name];
+                  const checked = selectedSkills.has(s.name);
+                  return (
+                    <div
+                      key={s.name}
+                      className={`flex items-center gap-3 py-2 transition-colors ${
+                        checked ? "bg-[#c0543e]/5 dark:bg-[#c0543e]/10" : ""
+                      }`}
+                    >
+                      <Checkbox
+                        checked={checked}
+                        onChange={() => toggleSkill(s.name)}
+                        aria-label={s.name}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <button
+                          className="text-left"
+                          onClick={() => openPreview(s.name, s.path)}
+                          title={t.library.preview}
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className="text-sm font-medium underline-offset-2 hover:underline">{s.name}</span>
+                            {!s.has_skill_md && (
+                              <span className="rounded bg-amber-100 px-1 text-[10px] text-amber-700 dark:bg-amber-900/50 dark:text-amber-300">
+                                {t.library.noSkillMd}
+                              </span>
+                            )}
+                          </div>
+                        </button>
+                        {s.description && (
+                          <p className="mt-0.5 line-clamp-1 text-xs text-[#8a7b6c]">{s.description}</p>
+                        )}
+                        <p className="mt-0.5 truncate font-mono text-[10px] text-[#9a8b7c]">{s.path}</p>
+                      </div>
+                      <span className="shrink-0 text-xs text-[#9a8b7c]">{fmtSize(s.size_bytes)}</span>
+                      <Button variant="ghost" size="sm" onClick={() => openPreview(s.name, s.path)}>
+                        {t.library.preview}
+                      </Button>
+                      {hasSource ? (
+                        <Button variant="outline" size="sm" onClick={() => doUpdate(s.name)}>
+                          {t.library.update}
+                        </Button>
+                      ) : (
+                        <Button variant="ghost" size="sm" disabled title="No agent source">
+                          {t.library.update}
+                        </Button>
+                      )}
+                      <Button variant="ghost" size="sm" onClick={() => doRemove(s.name)}>
+                        {t.library.remove}
+                      </Button>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
-      {/* 同步区域 */}
-      <Card>
-        <CardHeader>
-          <CardTitle>{t.sync.title}</CardTitle>
-          <CardDescription>{t.sync.subtitle}</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {agents.length === 0 ? (
-            <p className="text-sm text-zinc-500">No agents detected</p>
-          ) : (
-            <>
-              <div className="mb-2 flex items-center justify-between">
-                <span className="text-xs font-medium text-zinc-500">{t.sync.chooseAgents}</span>
-                <button
-                  onClick={toggleAll}
-                  className="text-xs text-zinc-500 underline-offset-2 hover:underline"
-                >
-                  {allAgentsSelected ? "取消全选" : t.sync.selectAll}
-                </button>
-              </div>
-              <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
-                {agents.map((a) => (
-                  <label
-                    key={a.key}
-                    className={`flex cursor-pointer items-center gap-2 rounded-md border p-2 text-sm transition-colors ${
-                      selectedAgents[a.key]
-                        ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800"
-                        : "border-zinc-200 hover:bg-zinc-50 dark:border-zinc-700 dark:hover:bg-zinc-800"
-                    }`}
-                  >
-                    <Checkbox
-                      checked={!!selectedAgents[a.key]}
-                      onChange={() => toggleAgent(a.key)}
-                    />
-                    <span className="truncate">{a.display}</span>
-                  </label>
-                ))}
-              </div>
-              <div className="mt-4">
-                <Button variant="accent" onClick={doSync} disabled={syncing}>
-                  {syncing ? t.sync.syncing : t.sync.syncNow}
-                </Button>
-              </div>
-            </>
-          )}
-
-          {report && (
-            <div className="mt-4 space-y-2">
-              <p className="text-sm font-medium">{t.sync.resultTitle}</p>
+        {/* 同步报告（内联显示） */}
+        {report && (
+          <Card>
+            <CardHeader>
+              <CardTitle>{t.sync.resultTitle}</CardTitle>
+            </CardHeader>
+            <CardContent>
               {report.orphaned.length > 0 && (
-                <p className="text-xs text-amber-600 dark:text-amber-400">
+                <p className="mb-2 text-xs text-amber-600 dark:text-amber-400">
                   {t.sync.orphaned}: {report.orphaned.join(", ")}
                 </p>
               )}
               {report.targets.map((r) => (
                 <div
                   key={r.key}
-                  className="rounded-md border border-zinc-100 bg-zinc-50 p-3 text-xs dark:border-zinc-800 dark:bg-zinc-950"
+                  className="mb-2 rounded-md border border-[#e8dfd5] bg-[#faf6f1] p-3 text-xs last:mb-0 dark:border-[#2e2520] dark:bg-[#1c1714]"
                 >
                   <div className="flex flex-wrap gap-x-4 gap-y-1">
                     <span className="font-medium">{r.key}</span>
@@ -259,7 +257,7 @@ export function LibraryPage() {
                     {r.copied > 0 && <span className="text-blue-600 dark:text-blue-400">
                       {t.sync.copied} {r.copied}
                     </span>}
-                    {r.skipped_builtin > 0 && <span className="text-zinc-500">
+                    {r.skipped_builtin > 0 && <span className="text-[#8a7b6c]">
                       {t.sync.skipped} {r.skipped_builtin}
                     </span>}
                     {r.failed > 0 && <span className="text-red-600 dark:text-red-400">
@@ -271,10 +269,54 @@ export function LibraryPage() {
                   )}
                 </div>
               ))}
+            </CardContent>
+          </Card>
+        )}
+      </div>
+
+      {/* 底部 sticky 同步栏 */}
+      {agents.length > 0 && (
+        <div className="fixed bottom-0 left-52 right-0 border-t border-[#d9cfc4] bg-[#f5efe8]/95 px-6 py-3 backdrop-blur-sm dark:border-[#2e2520] dark:bg-[#231c18]/95">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex items-center gap-4">
+              <span className="text-xs text-[#8a7b6c]">
+                {selectedSkills.size > 0
+                  ? `${selectedSkills.size} / ${skills.length} skills selected`
+                  : "All skills will be synced"}
+              </span>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-[#8a7b6c]">{t.sync.chooseAgents}:</span>
+                <div className="flex gap-1.5">
+                  {agents.map((a) => (
+                    <label
+                      key={a.key}
+                      className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
+                        selectedAgents[a.key]
+                          ? "border-[#c0543e] bg-[#c0543e]/5 dark:border-[#e07a64] dark:bg-[#c0543e]/10"
+                          : "border-[#d9cfc4] hover:bg-[#f0e8df] dark:border-[#3e342c] dark:hover:bg-[#2e2520]"
+                      }`}
+                    >
+                      <Checkbox
+                        checked={!!selectedAgents[a.key]}
+                        onChange={() => toggleAgent(a.key)}
+                      />
+                      <span className="truncate">{a.display}</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
             </div>
-          )}
-        </CardContent>
-      </Card>
+            <div className="flex items-center gap-2">
+              <Button variant="outline" size="sm" onClick={toggleAllAgents}>
+                {allAgentsSelected ? "取消全选" : t.sync.selectAll}
+              </Button>
+              <Button variant="accent" size="sm" onClick={doSync} disabled={syncing}>
+                {syncing ? t.sync.syncing : t.sync.syncNow}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {preview && (
         <SkillPreview name={preview.name} content={preview.content} onClose={() => setPreview(null)} />

@@ -6,16 +6,16 @@ type ButtonSize = "default" | "sm" | "lg" | "icon";
 
 const variants: Record<ButtonVariant, string> = {
   default:
-    "bg-indigo-600 text-white hover:bg-indigo-500 dark:bg-indigo-400 dark:text-indigo-950 dark:hover:bg-indigo-300 shadow-sm",
+    "bg-[#c0543e] text-white hover:bg-[#a84535] dark:bg-[#c0543e] dark:text-white dark:hover:bg-[#a84535] shadow-sm",
   secondary:
-    "bg-zinc-100 text-zinc-700 hover:bg-zinc-200 dark:bg-zinc-800 dark:text-zinc-200 dark:hover:bg-zinc-700",
-  ghost: "hover:bg-zinc-100 dark:hover:bg-zinc-800",
+    "bg-[#ebe3da] text-[#3a2e28] hover:bg-[#ddd3c7] dark:bg-[#2e2520] dark:text-[#e8ddd4] dark:hover:bg-[#3a3028]",
+  ghost: "hover:bg-[#ebe3da] dark:hover:bg-[#2e2520]",
   outline:
-    "border border-zinc-200 bg-transparent text-zinc-700 hover:border-zinc-300 hover:bg-zinc-50 hover:text-zinc-900 dark:border-zinc-700 dark:text-zinc-200 dark:hover:border-zinc-600 dark:hover:bg-zinc-800 dark:hover:text-zinc-100",
+    "border border-[#d9cfc4] bg-transparent text-[#3a2e28] hover:border-[#c0543e]/40 hover:bg-[#faf6f1] hover:text-[#c0543e] dark:border-[#3e342c] dark:text-[#e8ddd4] dark:hover:border-[#c0543e]/50 dark:hover:bg-[#231c18] dark:hover:text-[#e07a64]",
   destructive: "bg-red-600 text-white hover:bg-red-500",
-  link: "text-indigo-600 underline-offset-4 hover:underline dark:text-indigo-400",
+  link: "text-[#c0543e] underline-offset-4 hover:underline dark:text-[#e07a64]",
   accent:
-    "bg-gradient-to-b from-indigo-500 to-indigo-700 text-white shadow-sm hover:from-indigo-400 hover:to-indigo-600 dark:from-indigo-400 dark:to-indigo-600 dark:text-white",
+    "bg-gradient-to-b from-[#c0543e] to-[#a04030] text-white shadow-sm hover:from-[#d06448] hover:to-[#b04a38] dark:from-[#c0543e] dark:to-[#a04030] dark:text-white",
 };
 
 const sizes: Record<ButtonSize, string> = {

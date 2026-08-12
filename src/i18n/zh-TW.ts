@@ -10,6 +10,7 @@ export const zhTW: Messages = {
     library: "本地庫",
     market: "市場",
     settings: "設定",
+    trash: "回收站",
   },
   agents: {
     title: "已安裝的 Agent",
@@ -25,6 +26,8 @@ export const zhTW: Messages = {
     remnant: "殘留",
     skills: "個技能",
     viewSkills: "檢視技能",
+    delete: "刪除",
+    deleteConfirm: "確定刪除此技能？連結將直接移除，真實目錄將移入回收站。",
   },
   library: {
     title: "本地技能庫",
@@ -76,6 +79,18 @@ export const zhTW: Messages = {
     ssot: "SSOT 目錄",
     about: "關於",
     version: "版本",
+  },
+  trash: {
+    title: "回收站",
+    subtitle: "已刪除的技能可從此處恢復或徹底清空",
+    empty: "回收站為空",
+    restore: "恢復",
+    emptyAll: "清空回收站",
+    emptyConfirm: "確定要永久刪除回收站中的所有內容？此操作不可撤銷。",
+    origin: "來源",
+    deletedAt: "刪除時間",
+    restored: "已恢復",
+    emptied: "回收站已清空",
   },
   common: {
     cancel: "取消",

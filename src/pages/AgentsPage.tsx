@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useI18n } from "../hooks/useI18n";
 import { useScan } from "../hooks/useScan";
-import { importFromPath, listLibrary, readSkillMdAt } from "../lib/tauri";
+import { importFromPath, listLibrary, readSkillMdAt, deleteAgentSkill } from "../lib/tauri";
 import type { AgentScan, SkillInfo } from "../lib/tauri";
 import { Button } from "../components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../components/ui/card";
@@ -14,13 +14,16 @@ function skillKey(agent: string, skill: string) {
 
 export function AgentsPage() {
   const { t } = useI18n();
-  const { data, loading, error, refresh } = useScan();
+  const { data, loading, error: scanError, refresh } = useScan();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [expanded, setExpanded] = useState<Record<string, boolean>>({});
   const [installedNames, setInstalledNames] = useState<Set<string>>(new Set());
   const [busy, setBusy] = useState<"import" | "update" | null>(null);
   const [notice, setNotice] = useState<string[]>([]);
   const [preview, setPreview] = useState<{ name: string; content: string | null } | null>(null);
+  const [localError, setLocalError] = useState<string | null>(null);
+
+  const error = scanError || localError;
 
   const agents = data?.agents ?? [];
 
@@ -123,12 +126,23 @@ export function AgentsPage() {
     }
   };
 
+  const doDeleteSkill = async (agentKey: string, name: string) => {
+    if (!confirm(t.agents.deleteConfirm)) return;
+    try {
+      await deleteAgentSkill(agentKey, name);
+      await refresh();
+      await loadInstalled();
+    } catch (e) {
+      setLocalError(String(e));
+    }
+  };
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-xl font-semibold">{t.agents.title}</h1>
-          <p className="text-sm text-zinc-500">{agents.length} agents</p>
+          <p className="text-sm text-[#8a7b6c]">{agents.length} agents</p>
         </div>
         <div className="flex gap-2">
           {installedAgents.length > 0 && (
@@ -160,6 +174,7 @@ export function AgentsPage() {
             selected={selected}
             onToggleSkill={(skill) => toggleSkill(agent, skill)}
             onPreview={openPreview}
+            onDeleteSkill={doDeleteSkill}
             installedNames={installedNames}
             onImport={async (skill) => {
               await importFromPath(skill.path, skill.name);
@@ -172,14 +187,14 @@ export function AgentsPage() {
 
       {agents.length === 0 && !loading && (
         <Card>
-          <CardContent className="p-8 text-center text-sm text-zinc-500">{t.common.empty}</CardContent>
+          <CardContent className="p-8 text-center text-sm text-[#8a7b6c]">{t.common.empty}</CardContent>
         </Card>
       )}
 
       {selectedSkills.length > 0 && (
         <div className="sticky bottom-4 flex justify-center">
           <Card className="flex items-center gap-4 px-4 py-2 shadow-lg">
-            <span className="text-xs text-zinc-500">{selectedSkills.length} selected</span>
+            <span className="text-xs text-[#8a7b6c]">{selectedSkills.length} selected</span>
             <Button variant="outline" size="sm" disabled={busy !== null || selInLib.length === 0} onClick={runUpdate}>
               {busy === "update" ? t.common.loading : t.agents.update}
             </Button>
@@ -193,7 +208,7 @@ export function AgentsPage() {
       {notice.length > 0 && (
         <Card>
           <CardContent className="p-4">
-            <pre className="whitespace-pre-wrap text-xs text-zinc-600 dark:text-zinc-300">{notice.join("\n")}</pre>
+            <pre className="whitespace-pre-wrap text-xs text-[#6a5a4e] dark:text-[#c0b4a8]">{notice.join("\n")}</pre>
           </CardContent>
         </Card>
       )}
@@ -210,7 +225,7 @@ function statusBadge(status: string, t: any): { label: string; cls: string } {
     return { label: t.agents.installed, cls: "bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300" };
   if (status === "remnant")
     return { label: t.agents.remnant, cls: "bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-300" };
-  return { label: t.agents.notInstalled, cls: "bg-zinc-100 text-zinc-500 dark:bg-zinc-800 dark:text-zinc-400" };
+  return { label: t.agents.notInstalled, cls: "bg-[#ebe3da] text-[#8a7b6c] dark:bg-[#2e2520] dark:text-[#7a6b5c]" };
 }
 
 function SkillRow({
@@ -221,6 +236,7 @@ function SkillRow({
   onToggle,
   onPreview,
   onImport,
+  onDeleteSkill,
   t,
 }: {
   agent: AgentScan;
@@ -230,6 +246,7 @@ function SkillRow({
   onToggle: (skill: SkillInfo) => void;
   onPreview: (name: string, path: string) => void;
   onImport: (skill: SkillInfo) => void;
+  onDeleteSkill: (agentKey: string, name: string) => void;
   t: any;
 }) {
   const checked = selected.has(skillKey(agent.key, skill.name));
@@ -238,8 +255,8 @@ function SkillRow({
     <div
       className={`flex items-center gap-2 rounded-md border p-2 transition-colors ${
         checked
-          ? "border-zinc-900 bg-zinc-50 dark:border-zinc-100 dark:bg-zinc-800"
-          : "border-zinc-100 bg-zinc-50 dark:border-zinc-800 dark:bg-zinc-950"
+          ? "border-[#c0543e] bg-[#c0543e]/5 dark:border-[#e07a64] dark:bg-[#c0543e]/10"
+          : "border-[#e8dfd5] bg-[#faf6f1] dark:border-[#2e2520] dark:bg-[#1c1714]"
       }`}
     >
       <Checkbox checked={checked} onChange={() => onToggle(skill)} aria-label={skill.name} />
@@ -265,11 +282,16 @@ function SkillRow({
           )}
         </div>
         {skill.description && (
-          <p className="mt-0.5 line-clamp-1 text-[11px] text-zinc-500 dark:text-zinc-400">{skill.description}</p>
+          <p className="mt-0.5 line-clamp-1 text-[11px] text-[#8a7b6c] dark:text-[#7a6b5c]">{skill.description}</p>
         )}
       </button>
       <Button variant={inLib ? "outline" : "ghost"} size="sm" onClick={() => onImport(skill)}>
         {inLib ? t.agents.update : "+"}
+      </Button>
+      <Button variant="ghost" size="sm" onClick={() => onDeleteSkill(agent.key, skill.name)} title={t.agents.delete}>
+        <svg className="h-3.5 w-3.5 text-[#9a8b7c] hover:text-red-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+          <polyline points="3 6 5 6 21 6" /><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+        </svg>
       </Button>
     </div>
   );
@@ -284,6 +306,7 @@ function AgentCard({
   selected,
   onToggleSkill,
   onPreview,
+  onDeleteSkill,
   installedNames,
   onImport,
   t,
@@ -296,13 +319,14 @@ function AgentCard({
   selected: Set<string>;
   onToggleSkill: (skill: SkillInfo) => void;
   onPreview: (name: string, path: string) => void;
+  onDeleteSkill: (agentKey: string, name: string) => void;
   installedNames: Set<string>;
   onImport: (skill: SkillInfo) => void;
   t: any;
 }) {
   const badge = statusBadge(agent.status, t);
   return (
-    <Card className={checked ? "ring-2 ring-zinc-900 dark:ring-zinc-100" : ""}>
+    <Card className={checked ? "ring-2 ring-[#c0543e] dark:ring-[#e07a64]" : ""}>
       <CardHeader>
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
@@ -310,7 +334,7 @@ function AgentCard({
             <CardTitle>{agent.display}</CardTitle>
             <span className={`rounded-full px-2 py-0.5 text-[10px] ${badge.cls}`}>{badge.label}</span>
           </div>
-          <span className="text-xs text-zinc-400">{agent.skills.length} {t.agents.skills}</span>
+          <span className="text-xs text-[#9a8b7c]">{agent.skills.length} {t.agents.skills}</span>
         </div>
         {agent.skills_dir && (
           <CardDescription className="truncate" title={agent.skills_dir}>
@@ -323,7 +347,7 @@ function AgentCard({
           <>
             <button
               onClick={onToggleExpand}
-              className="mb-2 text-xs text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
+              className="mb-2 text-xs text-[#8a7b6c] hover:text-[#5a4a3e] dark:hover:text-[#b0a498]"
             >
               {expanded ? "▾" : "▸"} {t.agents.viewSkills}
             </button>
@@ -339,6 +363,7 @@ function AgentCard({
                     onToggle={onToggleSkill}
                     onPreview={onPreview}
                     onImport={onImport}
+                    onDeleteSkill={onDeleteSkill}
                     t={t}
                   />
                 ))}
@@ -346,7 +371,7 @@ function AgentCard({
             )}
           </>
         ) : (
-          <p className="text-xs text-zinc-400">{t.agents.empty}</p>
+          <p className="text-xs text-[#9a8b7c]">{t.agents.empty}</p>
         )}
       </CardContent>
     </Card>

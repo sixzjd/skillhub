@@ -92,13 +92,19 @@ fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
 ///  - 优先 symlink，失败回退 copy
 ///  - 已存在同名目录/链接 → 备份到 ssot/.backup/ 后替换（内置除外）
 ///  - SSOT 里已删除、但 agent 里残留指向 ssot 的链接 → 移入废纸篓
-pub fn sync_to_agent(agent: AgentKind, ssot: &Path, trash: &Path, report: &mut AgentSyncReport) {
+///  - skills 非空时只同步指定的技能
+pub fn sync_to_agent(agent: AgentKind, ssot: &Path, trash: &Path, skills: &[String], report: &mut AgentSyncReport) {
     let Some(skills_dir) = agent.detect() else {
         report.errors.push("agent 未安装或缺少 skills 目录".into());
         return;
     };
     let builtin = builtin_skill_names(agent);
-    let ssot_names = ssot_skill_names(ssot);
+    let mut ssot_names = ssot_skill_names(ssot);
+    // 如果指定了技能列表，只同步这些
+    if !skills.is_empty() {
+        let filter: std::collections::HashSet<&str> = skills.iter().map(|s| s.as_str()).collect();
+        ssot_names.retain(|n| filter.contains(n.as_str()));
+    }
 
     fs::create_dir_all(&skills_dir).ok();
 
@@ -197,7 +203,8 @@ fn now_stamp() -> String {
 }
 
 /// 主同步入口：把 SSOT 同步到指定的 agent 集合
-pub fn run_sync(target_keys: &[String]) -> SyncReport {
+/// skills: 如果非空，只同步这些技能；如果为空，同步全部
+pub fn run_sync(target_keys: &[String], skills: &[String]) -> SyncReport {
     let ssot = ssot_skills_dir();
     let trash = home_dir().join(".Trash");
     let mut report = SyncReport {
@@ -222,7 +229,7 @@ pub fn run_sync(target_keys: &[String]) -> SyncReport {
                 key: key.clone(),
                 ..Default::default()
             };
-            sync_to_agent(kind, &ssot, &trash, &mut agent_report);
+            sync_to_agent(kind, &ssot, &trash, skills, &mut agent_report);
             report.orphaned.extend(agent_report.orphaned.iter().cloned());
             report.targets.push(agent_report);
         }
@@ -240,4 +247,24 @@ pub fn agent_from_key(key: &str) -> Option<AgentKind> {
 /// 列出某个 agent 可写的 skills 目录（用于前端展示当前生效目录）
 pub fn agent_skills_dir(key: &str) -> Option<String> {
     agent_from_key(key)?.detect().map(|p| p.to_string_lossy().to_string())
+}
+
+/// 删除某 agent 里的技能：
+///  - 若是指针（符号链接）→ 取消指针（unlink）
+///  - 若是真实目录 → 移入 app 回收站（记录归属）
+/// 返回 "unlinked" 或 "trashed:<id>"
+pub fn delete_agent_skill(agent_key: &str, name: &str) -> Result<String, String> {
+    let kind = agent_from_key(agent_key).ok_or_else(|| "未知 agent".to_string())?;
+    let skills_dir = kind.detect().ok_or_else(|| "agent 未安装或缺少 skills 目录".to_string())?;
+    let path = skills_dir.join(name);
+    if !path.exists() && !path.is_symlink() {
+        return Err(format!("技能不存在: {name}"));
+    }
+    if path.is_symlink() {
+        std::fs::remove_file(&path).map_err(|e| e.to_string())?;
+        return Ok("unlinked".into());
+    }
+    let item = crate::trash::move_to_trash("agent", Some(agent_key), name, &path)
+        .map_err(|e| e.to_string())?;
+    Ok(format!("trashed:{}", item.id))
 }

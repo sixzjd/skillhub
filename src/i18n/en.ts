@@ -10,6 +10,7 @@ export const en: Messages = {
     library: "Library",
     market: "Market",
     settings: "Settings",
+    trash: "Trash",
   },
   agents: {
     title: "Installed Agents",
@@ -25,6 +26,8 @@ export const en: Messages = {
     remnant: "Remnant",
     skills: "skills",
     viewSkills: "View skills",
+    delete: "Delete",
+    deleteConfirm: "Delete this skill? Links will be removed; real directories go to trash.",
   },
   library: {
     title: "Local Library",
@@ -76,6 +79,18 @@ export const en: Messages = {
     ssot: "SSOT directory",
     about: "About",
     version: "Version",
+  },
+  trash: {
+    title: "Trash",
+    subtitle: "Deleted skills can be restored or permanently removed here",
+    empty: "Trash is empty",
+    restore: "Restore",
+    emptyAll: "Empty trash",
+    emptyConfirm: "Permanently delete everything in trash? This cannot be undone.",
+    origin: "Origin",
+    deletedAt: "Deleted at",
+    restored: "Restored",
+    emptied: "Trash emptied",
   },
   common: {
     cancel: "Cancel",

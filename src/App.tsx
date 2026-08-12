@@ -4,9 +4,11 @@ import { LibraryPage } from "./pages/LibraryPage";
 import { AgentsPage } from "./pages/AgentsPage";
 import { MarketPage } from "./pages/MarketPage";
 import { SettingsPage } from "./pages/SettingsPage";
+import { TrashPage } from "./pages/TrashPage";
 import { cn } from "./lib/utils";
+import skillhubIcon from "./assets/skillhub-icon.png";
 
-type PageKey = "library" | "agents" | "market" | "settings";
+type PageKey = "library" | "agents" | "market" | "settings" | "trash";
 
 export default function App() {
   const { t } = useI18n();
@@ -17,43 +19,42 @@ export default function App() {
     { key: "agents", label: t.nav.agents },
     { key: "market", label: t.nav.market },
     { key: "settings", label: t.nav.settings },
+    { key: "trash", label: t.nav.trash },
   ];
 
   return (
-    <div className="flex h-screen bg-zinc-50 text-zinc-900 dark:bg-zinc-950 dark:text-zinc-100">
+    <div className="flex h-screen bg-[#faf6f1] text-[#3a2e28] dark:bg-[#1c1714] dark:text-[#e8ddd4]">
       {/* 侧边栏 */}
-      <aside className="flex w-52 shrink-0 flex-col border-r border-zinc-200/70 bg-white dark:border-zinc-800 dark:bg-zinc-900">
-        <div className="flex items-center gap-2.5 px-4 pb-3 pt-5">
-          {/* 品牌标记：单色块 */}
-          <div className="flex h-8 w-8 items-center justify-center rounded-[9px] bg-zinc-900 text-[15px] font-black text-white shadow-sm dark:bg-white dark:text-zinc-900">
-            S
-          </div>
+      <aside className="flex w-60 shrink-0 flex-col border-r border-[#d9cfc4]/70 bg-[#f5efe8] dark:border-[#2e2520] dark:bg-[#231c18]">
+        <div className="flex items-center gap-3 px-5 pb-3 pt-5">
+          {/* 品牌标记：应用图标 */}
+          <img src={skillhubIcon} alt="SkillHub" className="h-9 w-9 rounded-[10px] object-contain" />
           <div className="leading-tight">
-            <div className="text-[15px] font-bold tracking-tight">SkillHub</div>
-            <div className="text-[10px] font-medium tracking-wide text-zinc-400">{t.app.tagline}</div>
+            <div className="text-[16px] font-bold tracking-tight">SkillHub</div>
+            <div className="text-[11px] font-medium tracking-wide text-[#9a8b7c]">{t.app.tagline}</div>
           </div>
         </div>
-        <nav className="flex-1 space-y-0.5 px-2.5 py-3">
+        <nav className="flex-1 space-y-0.5 px-3 py-3">
           {nav.map((item) => (
             <button
               key={item.key}
               onClick={() => setPage(item.key)}
               className={cn(
-                "group relative flex w-full items-center rounded-lg px-3 py-[7px] text-[13px] font-medium transition-colors duration-150",
+                "group relative flex w-full items-center rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors duration-150",
                 page === item.key
-                  ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-400/10 dark:text-indigo-300"
-                  : "text-zinc-500 hover:bg-zinc-100/70 hover:text-zinc-900 dark:text-zinc-400 dark:hover:bg-zinc-800/60 dark:hover:text-zinc-100"
+                  ? "bg-[#c0543e]/10 text-[#c0543e] dark:bg-[#c0543e]/15 dark:text-[#e07a64]"
+                  : "text-[#8a7b6c] hover:bg-[#ebe3da]/70 hover:text-[#3a2e28] dark:text-[#7a6b5c] dark:hover:bg-[#2e2520]/60 dark:hover:text-[#e8ddd4]"
               )}
             >
               {page === item.key && (
-                <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-indigo-500" />
+                <span className="absolute left-0 top-1/2 h-4 w-[3px] -translate-y-1/2 rounded-full bg-[#c0543e]" />
               )}
               {item.label}
             </button>
           ))}
         </nav>
-        <div className="border-t border-zinc-100 px-4 py-3 dark:border-zinc-800">
-          <div className="font-mono text-[10px] leading-relaxed text-zinc-400">
+        <div className="border-t border-[#d9cfc4]/50 px-5 py-3 dark:border-[#2e2520]">
+          <div className="font-mono text-[11px] leading-relaxed text-[#9a8b7c]">
             SSOT
             <br />~/.agents/skills
           </div>
@@ -66,6 +67,7 @@ export default function App() {
         {page === "agents" && <AgentsPage />}
         {page === "market" && <MarketPage />}
         {page === "settings" && <SettingsPage />}
+        {page === "trash" && <TrashPage />}
       </main>
     </div>
   );
