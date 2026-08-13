@@ -23,15 +23,15 @@ export default function App() {
   ];
 
   return (
-    <div data-tauri-drag-region className="flex h-screen bg-[#eee5d8] text-[#3a2e28] dark:bg-[#211c19] dark:text-[#e8ddd4]">
+    <div data-tauri-drag-region className="flex h-screen bg-[#faf8f5] text-[#2c2420] dark:bg-[#1c1714] dark:text-[#e8ddd4]">
       {/* 侧边栏 */}
-      <aside data-tauri-drag-region className="flex w-60 shrink-0 flex-col border-r border-[#d9cfc4]/70 bg-[#eee5d8] dark:border-[#2e2520] dark:bg-[#211c19]">
-        <div className="flex items-center gap-3 px-5 pb-3 pt-14">
+      <aside data-tauri-drag-region className="flex w-60 shrink-0 flex-col border-r border-[#e8e0d8] bg-[#f2ede8] dark:border-[#2e2520] dark:bg-[#231c18]">
+        <div className="flex items-center gap-3 px-5 pb-3 pt-9">
           {/* 品牌标记：应用图标 */}
           <img src={skillhubIcon} alt="SkillHub" className="h-9 w-9 rounded-[10px] object-contain" />
           <div className="leading-tight">
             <div className="text-[16px] font-bold tracking-tight">SkillHub</div>
-            <div className="text-[11px] font-medium tracking-wide text-[#9a8b7c]">{t.app.tagline}</div>
+            <div className="text-[11px] font-medium tracking-wide text-[#8a7e76]">{t.app.tagline}</div>
           </div>
         </div>
         <nav className="flex-1 space-y-0.5 px-3 py-3">
@@ -42,8 +42,8 @@ export default function App() {
               className={cn(
                 "group relative flex w-full items-center rounded-lg px-3.5 py-2 text-[14px] font-medium transition-colors duration-150",
                 page === item.key
-                  ? "bg-[#c0543e]/10 text-[#c0543e] dark:bg-[#c0543e]/15 dark:text-[#e07a64]"
-                  : "text-[#8a7b6c] hover:bg-[#ebe3da]/70 hover:text-[#3a2e28] dark:text-[#7a6b5c] dark:hover:bg-[#2e2520]/60 dark:hover:text-[#e8ddd4]"
+                  ? "bg-[#c0543e]/8 text-[#c0543e] dark:bg-[#c0543e]/15 dark:text-[#e07a64]"
+                  : "text-[#8a7e76] hover:bg-[#ebe5df]/70 hover:text-[#2c2420] dark:text-[#7a6b5c] dark:hover:bg-[#2e2520]/60 dark:hover:text-[#e8ddd4]"
               )}
             >
               {page === item.key && (
@@ -53,14 +53,13 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className="px-5 py-3">
-          <div className="font-mono text-[11px] leading-relaxed text-[#9a8b7c]">
+        <div className="border-t border-[#e8e0d8]/60 px-5 py-3 dark:border-[#2e2520]">
+          <div className="font-mono text-[11px] leading-relaxed text-[#8a7e76]">
             SSOT
             <br />~/.agents/skills
           </div>
         </div>
       </aside>
-      <hr className="border-t border-[#d9cfc4] dark:border-[#2e2520]" />
 
       {/* 主内容 */}
       <main className="min-w-0 flex-1 overflow-y-auto p-6">

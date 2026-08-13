@@ -164,16 +164,16 @@ export function LibraryPage() {
                 />
                 <CardTitle>{t.library.title}</CardTitle>
               </div>
-              <span className="text-xs text-[#9a8b7c]">{skills.length} items</span>
+              <span className="text-xs text-[#8a7e76]">{skills.length} items</span>
             </div>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-sm text-[#8a7b6c]">{t.common.loading}</p>
+              <p className="text-sm text-[#8a7e76]">{t.common.loading}</p>
             ) : skills.length === 0 ? (
-              <p className="py-6 text-center text-sm text-[#9a8b7c]">{t.library.empty}</p>
+              <p className="py-6 text-center text-sm text-[#8a7e76]">{t.library.empty}</p>
             ) : (
-              <div className="divide-y divide-[#e8dfd5] dark:divide-[#2e2520]">
+              <div className="divide-y divide-[#e8e0d8] dark:divide-[#2e2520]">
                 {skills.map((s) => {
                   const hasSource = !!agentSource[s.name];
                   const checked = selectedSkills.has(s.name);
@@ -278,10 +278,10 @@ export function LibraryPage() {
       {/* 底部 sticky 同步栏（紧凑） */}
       {agents.length > 0 && (
         <div
-          className="fixed bottom-0 left-52 right-0 bg-[#f5efe8]/95 px-6 py-3 backdrop-blur-sm dark:bg-[#231c18]/95"
+          className="fixed bottom-0 left-60 right-0 border-t border-[#e8e0d8] bg-[#faf8f5]/95 px-6 py-3 backdrop-blur-sm dark:border-[#2e2520] dark:bg-[#1c1714]/95"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#8a7b6c]">
+            <span className="text-xs text-[#8a7e76]">
               {selectedSkills.size > 0
                 ? `${selectedSkills.size} / ${skills.length} skills selected`
                 : `${skills.length} skills`}
@@ -313,7 +313,7 @@ export function LibraryPage() {
       {showSyncPanel && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowSyncPanel(false)}>
           <div
-            className="w-[640px] rounded-xl border border-[#d9cfc4] bg-[#fdf9f5] p-6 shadow-xl dark:border-[#2e2520] dark:bg-[#231c18]"
+            className="w-[640px] rounded-xl border border-[#e8e0d8] bg-white p-6 shadow-xl dark:border-[#2e2520] dark:bg-[#231c18]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
@@ -329,7 +329,7 @@ export function LibraryPage() {
                   className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors w-[180px] justify-center ${
                     selectedAgents[a.key]
                       ? "border-[#c0543e] bg-[#c0543e]/5 dark:border-[#e07a64] dark:bg-[#c0543e]/10"
-                      : "border-[#d9cfc4] hover:bg-[#f0e8df] dark:border-[#3e342c] dark:hover:bg-[#2e2520]"
+                      : "border-[#e8e0d8] hover:bg-[#f5f0eb] dark:border-[#3e342c] dark:hover:bg-[#2e2520]"
                   }`}
                 >
                   <Checkbox

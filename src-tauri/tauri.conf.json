@@ -12,14 +12,14 @@
   "app": {
     "windows": [
       {
-        "title": "SkillHub",
+        "title": "",
         "width": 1100,
         "height": 720,
         "minWidth": 900,
         "minHeight": 600,
         "center": true,
-        "backgroundColor": "#eee5d8",
-        "titleBarStyle": "Transparent"
+        "backgroundColor": "#faf8f5",
+        "titleBarStyle": "Overlay"
       }
     ],
     "security": {
