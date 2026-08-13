@@ -27,3 +27,9 @@ pnpm-debug.log*
 # Env
 .env
 .env.*
+
+# macOS hidden icon cache
+/.Icon*
+
+# Icon build artifacts
+src-tauri/icons/SkillHub.iconset/
