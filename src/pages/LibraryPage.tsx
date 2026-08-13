@@ -18,6 +18,7 @@ export function LibraryPage() {
   const [report, setReport] = useState<SyncReport | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [preview, setPreview] = useState<{ name: string; content: string | null } | null>(null);
+  const [showSyncPanel, setShowSyncPanel] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -274,43 +275,84 @@ export function LibraryPage() {
         )}
       </div>
 
-      {/* 底部 sticky 同步栏 */}
+      {/* 底部 sticky 同步栏（紧凑） */}
       {agents.length > 0 && (
-        <div className="fixed bottom-0 left-52 right-0 border-t border-[#d9cfc4] bg-[#f5efe8]/95 px-6 py-3 backdrop-blur-sm dark:border-[#2e2520] dark:bg-[#231c18]/95">
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex items-center gap-4">
-              <span className="text-xs text-[#8a7b6c]">
-                {selectedSkills.size > 0
-                  ? `${selectedSkills.size} / ${skills.length} skills selected`
-                  : "All skills will be synced"}
-              </span>
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-[#8a7b6c]">{t.sync.chooseAgents}:</span>
-                <div className="flex gap-1.5">
-                  {agents.map((a) => (
-                    <label
-                      key={a.key}
-                      className={`flex cursor-pointer items-center gap-1.5 rounded-md border px-2 py-1 text-xs transition-colors ${
-                        selectedAgents[a.key]
-                          ? "border-[#c0543e] bg-[#c0543e]/5 dark:border-[#e07a64] dark:bg-[#c0543e]/10"
-                          : "border-[#d9cfc4] hover:bg-[#f0e8df] dark:border-[#3e342c] dark:hover:bg-[#2e2520]"
-                      }`}
-                    >
-                      <Checkbox
-                        checked={!!selectedAgents[a.key]}
-                        onChange={() => toggleAgent(a.key)}
-                      />
-                      <span className="truncate">{a.display}</span>
-                    </label>
-                  ))}
-                </div>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={toggleAllAgents}>
+        <div
+          className="fixed bottom-0 left-52 right-0 bg-[#f5efe8]/95 px-6 py-3 backdrop-blur-sm dark:bg-[#231c18]/95"
+        >
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-[#8a7b6c]">
+              {selectedSkills.size > 0
+                ? `${selectedSkills.size} / ${skills.length} skills selected`
+                : `${skills.length} skills`}
+              {Object.values(selectedAgents).filter(Boolean).length > 0 && (
+                <span className="ml-2">
+                  → {agents.filter((a) => selectedAgents[a.key]).map((a) => a.display).join(", ")}
+                </span>
+              )}
+            </span>
+            <Button
+              variant="accent"
+              size="sm"
+              onClick={() => {
+                // 打开面板时自动全选已安装 agent
+                const next: Record<string, boolean> = {};
+                agents.forEach((a) => (next[a.key] = true));
+                setSelectedAgents(next);
+                setShowSyncPanel(true);
+              }}
+              disabled={syncing}
+            >
+              {syncing ? t.sync.syncing : t.sync.syncNow}
+            </Button>
+          </div>
+        </div>
+      )}
+
+      {/* 居中同步面板（顶层） */}
+      {showSyncPanel && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowSyncPanel(false)}>
+          <div
+            className="w-[640px] rounded-xl border border-[#d9cfc4] bg-[#fdf9f5] p-6 shadow-xl dark:border-[#2e2520] dark:bg-[#231c18]"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="mb-4 flex items-center justify-between">
+              <span className="text-base font-medium">{t.sync.chooseAgents}</span>
+              <Button variant="ghost" size="sm" onClick={toggleAllAgents}>
                 {allAgentsSelected ? "取消全选" : t.sync.selectAll}
               </Button>
-              <Button variant="accent" size="sm" onClick={doSync} disabled={syncing}>
+            </div>
+            <div className="mb-5 flex flex-wrap gap-2.5">
+              {agents.map((a) => (
+                <label
+                  key={a.key}
+                  className={`flex cursor-pointer items-center gap-2 rounded-lg border px-4 py-2.5 text-sm transition-colors w-[180px] justify-center ${
+                    selectedAgents[a.key]
+                      ? "border-[#c0543e] bg-[#c0543e]/5 dark:border-[#e07a64] dark:bg-[#c0543e]/10"
+                      : "border-[#d9cfc4] hover:bg-[#f0e8df] dark:border-[#3e342c] dark:hover:bg-[#2e2520]"
+                  }`}
+                >
+                  <Checkbox
+                    checked={!!selectedAgents[a.key]}
+                    onChange={() => toggleAgent(a.key)}
+                  />
+                  <span>{a.display}</span>
+                </label>
+              ))}
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="ghost" size="sm" onClick={() => setShowSyncPanel(false)}>
+                {t.common.cancel}
+              </Button>
+              <Button
+                variant="accent"
+                size="sm"
+                onClick={() => {
+                  setShowSyncPanel(false);
+                  doSync();
+                }}
+                disabled={syncing || !Object.values(selectedAgents).some(Boolean)}
+              >
                 {syncing ? t.sync.syncing : t.sync.syncNow}
               </Button>
             </div>

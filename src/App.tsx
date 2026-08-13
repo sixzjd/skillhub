@@ -23,10 +23,10 @@ export default function App() {
   ];
 
   return (
-    <div className="flex h-screen bg-[#faf6f1] text-[#3a2e28] dark:bg-[#1c1714] dark:text-[#e8ddd4]">
+    <div data-tauri-drag-region className="flex h-screen bg-[#eee5d8] text-[#3a2e28] dark:bg-[#211c19] dark:text-[#e8ddd4]">
       {/* 侧边栏 */}
-      <aside className="flex w-60 shrink-0 flex-col border-r border-[#d9cfc4]/70 bg-[#f5efe8] dark:border-[#2e2520] dark:bg-[#231c18]">
-        <div className="flex items-center gap-3 px-5 pb-3 pt-5">
+      <aside data-tauri-drag-region className="flex w-60 shrink-0 flex-col border-r border-[#d9cfc4]/70 bg-[#eee5d8] dark:border-[#2e2520] dark:bg-[#211c19]">
+        <div className="flex items-center gap-3 px-5 pb-3 pt-14">
           {/* 品牌标记：应用图标 */}
           <img src={skillhubIcon} alt="SkillHub" className="h-9 w-9 rounded-[10px] object-contain" />
           <div className="leading-tight">
@@ -53,13 +53,14 @@ export default function App() {
             </button>
           ))}
         </nav>
-        <div className="border-t border-[#d9cfc4]/50 px-5 py-3 dark:border-[#2e2520]">
+        <div className="px-5 py-3">
           <div className="font-mono text-[11px] leading-relaxed text-[#9a8b7c]">
             SSOT
             <br />~/.agents/skills
           </div>
         </div>
       </aside>
+      <hr className="border-t border-[#d9cfc4] dark:border-[#2e2520]" />
 
       {/* 主内容 */}
       <main className="min-w-0 flex-1 overflow-y-auto p-6">

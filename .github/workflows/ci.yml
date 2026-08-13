@@ -1,0 +1,54 @@
+name: Build SkillHub
+
+on:
+  push:
+    branches: [ main, master ]
+  pull_request:
+    branches: [ main, master ]
+
+jobs:
+  build:
+    runs-on: macos-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "pnpm"
+
+      - name: Install pnpm
+        run: npm i -g pnpm
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
+
+      - name: Set up Rust toolchain
+        uses: actions-rs/toolchain@v1
+        with:
+          toolchain: stable
+          override: true
+          profile: minimal
+
+      - name: Install Tauri prerequisites
+        run: |
+          brew install gcc curl wget libusb
+
+      - name: Build Tauri app (debug)
+        run: |
+          cd src-tauri
+          pnpm tauri dev -- --no-watch &
+          sleep 30 # give it time to compile
+
+      - name: Build Tauri app (release)
+        run: |
+          cd src-tauri
+          pnpm tauri build
+
+      - name: Upload artifact (macOS .app)
+        uses: actions/upload-artifact@v4
+        with:
+          name: SkillHub-macOS
+          path: src-tauri/target/release/bundle/macos/*.app
