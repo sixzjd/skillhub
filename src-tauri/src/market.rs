@@ -168,10 +168,12 @@ fn is_safe_target(name: &str) -> bool {
     !name.is_empty() && !name.contains(['/', '\\']) && name != "." && name != ".."
 }
 
-/// 校验仓库内来源路径：每段都不能是 .. 或空（防止读取 tarball 之外的文件）
+/// 校验仓库内来源路径：不允许 ".." 段（防止读取 tarball 之外的文件）；
+/// 容忍 "./"、尾随斜杠（anthropics 官方市场的 source 就是 "./"）
 fn is_safe_source(src: &str) -> bool {
     let src = src.trim_start_matches('/');
-    !src.is_empty() && src.split('/').all(|seg| !seg.is_empty() && seg != "..")
+    let segs: Vec<&str> = src.split('/').filter(|s| !s.is_empty()).collect();
+    !segs.is_empty() && segs.iter().all(|s| *s != "..")
 }
 
 /// 共享异步客户端：超时 + 读取环境变量代理（HTTP(S)/ALL_PROXY）
