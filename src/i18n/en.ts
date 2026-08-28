@@ -28,6 +28,11 @@ export const en: Messages = {
     viewSkills: "View skills",
     delete: "Delete",
     deleteConfirm: "Delete this skill? Links will be removed; real directories go to trash.",
+    deleteSelectedConfirm: "Delete the selected skills? Links will be removed; real directories go to trash.",
+    install: "Install",
+    selected: "selected",
+    count: "agents",
+    hasNewer: "Update available",
   },
   library: {
     title: "Local Library",
@@ -55,6 +60,7 @@ export const en: Messages = {
     noTarget: "Select at least one agent",
     done: "Sync complete",
     resultTitle: "Sync result",
+    deselectAll: "Deselect all",
   },
   market: {
     title: "Skill Market",
@@ -72,6 +78,8 @@ export const en: Messages = {
     addMarket: "Add market",
     removeMarket: "Remove market",
     alreadyExists: "This market already exists",
+    update: "Update",
+    skillCount: "skills",
   },
   settings: {
     title: "Settings",
@@ -99,5 +107,6 @@ export const en: Messages = {
     loading: "Loading…",
     error: "Error",
     empty: "No data",
+    items: "items",
   },
 };

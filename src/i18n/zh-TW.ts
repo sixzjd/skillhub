@@ -28,6 +28,11 @@ export const zhTW: Messages = {
     viewSkills: "檢視技能",
     delete: "刪除",
     deleteConfirm: "確定刪除此技能？連結將直接移除，真實目錄將移入回收站。",
+    deleteSelectedConfirm: "確定刪除選中的技能？連結將直接移除，真實目錄將移入回收站。",
+    install: "安裝",
+    selected: "已選",
+    count: "個 Agent",
+    hasNewer: "可更新",
   },
   library: {
     title: "本地技能庫",
@@ -55,6 +60,7 @@ export const zhTW: Messages = {
     noTarget: "請至少選擇一個 Agent",
     done: "同步完成",
     resultTitle: "同步結果",
+    deselectAll: "取消全選",
   },
   market: {
     title: "技能市場",
@@ -72,6 +78,8 @@ export const zhTW: Messages = {
     addMarket: "新增市場",
     removeMarket: "移除市場",
     alreadyExists: "此市場已存在",
+    update: "更新",
+    skillCount: "個技能",
   },
   settings: {
     title: "設定",
@@ -99,5 +107,6 @@ export const zhTW: Messages = {
     loading: "載入中…",
     error: "錯誤",
     empty: "暫無資料",
+    items: "項",
   },
 };

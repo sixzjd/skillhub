@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
+import { Eye, RefreshCw, Trash2 } from "lucide-react";
 import { useI18n } from "../hooks/useI18n";
 import { listLibrary, runSync, removeFromLibrary, scanAll, importFromPath, readSkillMdAt } from "../lib/tauri";
 import type { LibrarySkill, SyncReport, AgentScan } from "../lib/tauri";
@@ -7,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Checkbox } from "../components/ui/checkbox";
 import { SkillPreview } from "../components/SkillPreview";
 
-export function LibraryPage() {
+export function LibraryPage({ onNavigate }: { onNavigate?: (page: "agents" | "market") => void }) {
   const { t } = useI18n();
   const [skills, setSkills] = useState<LibrarySkill[]>([]);
   const [agents, setAgents] = useState<AgentScan[]>([]);
@@ -142,7 +143,7 @@ export function LibraryPage() {
     <div className="relative flex min-h-screen flex-col">
       <div className="flex-1 space-y-6 p-6 pb-24">
         <div>
-          <h1 className="text-xl font-semibold">{t.library.title}</h1>
+          <h1 className="text-xl font-semibold text-balance">{t.library.title}</h1>
           <p className="text-sm text-[#8a7b6c]">{t.library.subtitle}</p>
         </div>
 
@@ -164,14 +165,29 @@ export function LibraryPage() {
                 />
                 <CardTitle>{t.library.title}</CardTitle>
               </div>
-              <span className="text-xs text-[#8a7e76]">{skills.length} items</span>
+              <span className="text-xs text-[#8a7e76] tabular-nums">{skills.length} {t.common.items}</span>
             </div>
           </CardHeader>
           <CardContent>
             {loading ? (
-              <p className="text-sm text-[#8a7e76]">{t.common.loading}</p>
+              <div className="space-y-3 py-2" aria-busy="true">
+                {[0, 1, 2].map((i) => (
+                  <div key={i} className="flex items-center gap-3">
+                    <div className="size-4 shrink-0 animate-pulse rounded bg-[#ebe3da] dark:bg-[#2e2520]" />
+                    <div className="flex-1 space-y-1.5">
+                      <div className="h-3 w-1/4 animate-pulse rounded bg-[#ebe3da] dark:bg-[#2e2520]" />
+                      <div className="h-2.5 w-2/5 animate-pulse rounded bg-[#f2ede8] dark:bg-[#26201b]" />
+                    </div>
+                  </div>
+                ))}
+              </div>
             ) : skills.length === 0 ? (
-              <p className="py-6 text-center text-sm text-[#8a7e76]">{t.library.empty}</p>
+              <div className="flex flex-col items-center gap-3 py-8 text-center">
+                <p className="text-sm text-[#8a7e76]">{t.library.empty}</p>
+                <Button variant="outline" size="sm" onClick={() => onNavigate?.("agents")}>
+                  {t.library.importFromAgent}
+                </Button>
+              </div>
             ) : (
               <div className="divide-y divide-[#e8e0d8] dark:divide-[#2e2520]">
                 {skills.map((s) => {
@@ -180,7 +196,7 @@ export function LibraryPage() {
                   return (
                     <div
                       key={s.name}
-                      className={`flex items-center gap-3 py-2 transition-colors ${
+                      className={`group flex items-center gap-3 rounded-md px-1 py-2 transition-colors ${
                         checked ? "bg-[#c0543e]/5 dark:bg-[#c0543e]/10" : ""
                       }`}
                     >
@@ -209,22 +225,40 @@ export function LibraryPage() {
                         )}
                         <p className="mt-0.5 truncate font-mono text-[10px] text-[#9a8b7c]">{s.path}</p>
                       </div>
-                      <span className="shrink-0 text-xs text-[#9a8b7c]">{fmtSize(s.size_bytes)}</span>
-                      <Button variant="ghost" size="sm" onClick={() => openPreview(s.name, s.path)}>
-                        {t.library.preview}
-                      </Button>
-                      {hasSource ? (
-                        <Button variant="outline" size="sm" onClick={() => doUpdate(s.name)}>
-                          {t.library.update}
+                      <span className="shrink-0 text-xs text-[#9a8b7c] tabular-nums">{fmtSize(s.size_bytes)}</span>
+                      <div className="flex shrink-0 items-center gap-0.5 opacity-0 transition-opacity duration-150 focus-within:opacity-100 group-hover:opacity-100">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          onClick={() => openPreview(s.name, s.path)}
+                          aria-label={t.library.preview}
+                          title={t.library.preview}
+                        >
+                          <Eye className="size-3.5" aria-hidden />
                         </Button>
-                      ) : (
-                        <Button variant="ghost" size="sm" disabled title="No agent source">
-                          {t.library.update}
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7"
+                          disabled={!hasSource}
+                          onClick={() => doUpdate(s.name)}
+                          aria-label={t.library.update}
+                          title={hasSource ? t.library.update : `${t.library.update} (${t.library.noSkillMd})`}
+                        >
+                          <RefreshCw className="size-3.5" aria-hidden />
                         </Button>
-                      )}
-                      <Button variant="ghost" size="sm" onClick={() => doRemove(s.name)}>
-                        {t.library.remove}
-                      </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="size-7 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                          onClick={() => doRemove(s.name)}
+                          aria-label={t.library.remove}
+                          title={t.library.remove}
+                        >
+                          <Trash2 className="size-3.5" aria-hidden />
+                        </Button>
+                      </div>
                     </div>
                   );
                 })}
@@ -278,13 +312,13 @@ export function LibraryPage() {
       {/* 底部 sticky 同步栏（紧凑） */}
       {agents.length > 0 && (
         <div
-          className="fixed bottom-0 left-60 right-0 border-t border-[#e8e0d8] bg-[#faf8f5]/95 px-6 py-3 backdrop-blur-sm dark:border-[#2e2520] dark:bg-[#1c1714]/95"
+          className="fixed bottom-0 left-60 right-0 border-t border-[#e8e0d8] bg-[#faf8f5]/95 px-6 py-3 backdrop-blur-sm animate-slide-up dark:border-[#2e2520] dark:bg-[#1c1714]/95"
         >
           <div className="flex items-center justify-between">
-            <span className="text-xs text-[#8a7e76]">
+            <span className="text-xs text-[#8a7e76] tabular-nums">
               {selectedSkills.size > 0
-                ? `${selectedSkills.size} / ${skills.length} skills selected`
-                : `${skills.length} skills`}
+                ? `${selectedSkills.size} / ${skills.length} ${t.common.items}`
+                : `${skills.length} ${t.common.items}`}
               {Object.values(selectedAgents).filter(Boolean).length > 0 && (
                 <span className="ml-2">
                   → {agents.filter((a) => selectedAgents[a.key]).map((a) => a.display).join(", ")}
@@ -311,15 +345,15 @@ export function LibraryPage() {
 
       {/* 居中同步面板（顶层） */}
       {showSyncPanel && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30" onClick={() => setShowSyncPanel(false)}>
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 animate-fade-in" onClick={() => setShowSyncPanel(false)}>
           <div
-            className="w-[640px] rounded-xl border border-[#e8e0d8] bg-white p-6 shadow-xl dark:border-[#2e2520] dark:bg-[#231c18]"
+            className="w-[640px] rounded-xl border border-[#e8e0d8] bg-white p-6 shadow-xl animate-pop-in dark:border-[#2e2520] dark:bg-[#231c18]"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-4 flex items-center justify-between">
               <span className="text-base font-medium">{t.sync.chooseAgents}</span>
               <Button variant="ghost" size="sm" onClick={toggleAllAgents}>
-                {allAgentsSelected ? "取消全选" : t.sync.selectAll}
+                {allAgentsSelected ? t.sync.deselectAll : t.sync.selectAll}
               </Button>
             </div>
             <div className="mb-5 flex flex-wrap gap-2.5">

@@ -7,6 +7,7 @@ export interface SkillInfo {
   is_link: boolean;
   has_skill_md: boolean;
   description: string;
+  has_newer: boolean;
 }
 
 export interface AgentScan {

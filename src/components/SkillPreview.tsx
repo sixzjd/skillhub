@@ -18,11 +18,11 @@ export function SkillPreview({
   const { t } = useI18n();
   return (
     <div
-      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-6 animate-fade-in"
       onClick={onClose}
     >
       <div
-        className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-[#d9cfc4]/80 bg-[#fdf9f5] shadow-2xl dark:border-[#3e342c]/80 dark:bg-[#231c18]"
+        className="flex max-h-[80vh] w-full max-w-2xl flex-col overflow-hidden rounded-xl border border-[#d9cfc4]/80 bg-[#fdf9f5] shadow-2xl animate-pop-in dark:border-[#3e342c]/80 dark:bg-[#231c18]"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between gap-3 border-b border-[#e8dfd5] bg-[#faf6f1]/60 px-4 py-3 dark:border-[#2e2520] dark:bg-[#1c1714]/40">

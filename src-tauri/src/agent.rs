@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
-use std::collections::HashMap;
 use std::path::{Path, PathBuf};
+use std::time::SystemTime;
 
 /// 支持的 Agent 类型（覆盖主流 + 社区新兴）
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Hash)]
@@ -18,6 +18,18 @@ pub enum AgentKind {
     OpenClaw,
     Cursor,
     Gemini,
+    Zcode,
+    Qwen,
+    IFlow,
+    Copilot,
+    Amp,
+    Crush,
+    Goose,
+    Windsurf,
+    Kiro,
+    Cline,
+    Roo,
+    Zed,
 }
 
 impl AgentKind {
@@ -36,6 +48,18 @@ impl AgentKind {
             AgentKind::OpenClaw => "openclaw",
             AgentKind::Cursor => "cursor",
             AgentKind::Gemini => "gemini",
+            AgentKind::Zcode => "zcode",
+            AgentKind::Qwen => "qwen",
+            AgentKind::IFlow => "iflow",
+            AgentKind::Copilot => "copilot",
+            AgentKind::Amp => "amp",
+            AgentKind::Crush => "crush",
+            AgentKind::Goose => "goose",
+            AgentKind::Windsurf => "windsurf",
+            AgentKind::Kiro => "kiro",
+            AgentKind::Cline => "cline",
+            AgentKind::Roo => "roo",
+            AgentKind::Zed => "zed",
         }
     }
 
@@ -54,6 +78,18 @@ impl AgentKind {
             AgentKind::OpenClaw => "OpenClaw",
             AgentKind::Cursor => "Cursor",
             AgentKind::Gemini => "Gemini",
+            AgentKind::Zcode => "ZCode",
+            AgentKind::Qwen => "Qwen Code",
+            AgentKind::IFlow => "iFlow CLI",
+            AgentKind::Copilot => "GitHub Copilot",
+            AgentKind::Amp => "Amp",
+            AgentKind::Crush => "Crush",
+            AgentKind::Goose => "Goose",
+            AgentKind::Windsurf => "Windsurf",
+            AgentKind::Kiro => "Kiro",
+            AgentKind::Cline => "Cline",
+            AgentKind::Roo => "Roo Code",
+            AgentKind::Zed => "Zed",
         }
     }
 
@@ -102,7 +138,47 @@ impl AgentKind {
                 p(".gemini/skills"),
                 p(".config/gemini/skills"),
             ],
+            AgentKind::Zcode => vec![p(".zcode/skills")],
+            AgentKind::Qwen => vec![
+                p(".qwen/skills"),
+                p(".config/qwen/skills"),
+            ],
+            AgentKind::IFlow => vec![
+                p(".iflow/skills"),
+                p(".config/iflow/skills"),
+            ],
+            AgentKind::Copilot => vec![p(".copilot/skills")],
+            AgentKind::Amp => vec![
+                p(".config/amp/skills"),
+                p(".amp/skills"),
+            ],
+            AgentKind::Crush => vec![p(".config/crush/skills")],
+            AgentKind::Goose => vec![
+                p(".config/goose/skills"),
+                p(".goose/skills"),
+            ],
+            AgentKind::Windsurf => vec![
+                p(".windsurf/skills"),
+                p(".codeium/windsurf/skills"),
+            ],
+            AgentKind::Kiro => vec![p(".kiro/skills")],
+            AgentKind::Cline => vec![p(".cline/skills")],
+            AgentKind::Roo => vec![p(".roo/skills")],
+            AgentKind::Zed => vec![
+                p(".zed/skills"),
+                p(".config/zed/skills"),
+            ],
         }
+    }
+
+    /// 实际存在的 skills 目录（只认候选路径；配置目录存在不算 skills 目录）
+    pub fn skills_dir(&self) -> Option<PathBuf> {
+        self.skill_dir_candidates().into_iter().find(|d| d.exists())
+    }
+
+    /// 同步目标 skills 目录（第一个候选路径；不存在时由同步流程创建）
+    pub fn sync_dir(&self) -> PathBuf {
+        self.skill_dir_candidates()[0].clone()
     }
 
     /// 探测 agent 是否安装（任一 skills 目录存在或其配置主目录存在）
@@ -126,6 +202,18 @@ impl AgentKind {
                     AgentKind::OpenClaw => home.join(".openclaw"),
                     AgentKind::Cursor => home.join(".cursor"),
                     AgentKind::Gemini => home.join(".gemini"),
+                    AgentKind::Zcode => home.join(".zcode"),
+                    AgentKind::Qwen => home.join(".qwen"),
+                    AgentKind::IFlow => home.join(".iflow"),
+                    AgentKind::Copilot => home.join(".copilot"),
+                    AgentKind::Amp => home.join(".config/amp"),
+                    AgentKind::Crush => home.join(".config/crush"),
+                    AgentKind::Goose => home.join(".config/goose"),
+                    AgentKind::Windsurf => home.join(".codeium/windsurf"),
+                    AgentKind::Kiro => home.join(".kiro"),
+                    AgentKind::Cline => home.join(".cline"),
+                    AgentKind::Roo => home.join(".roo"),
+                    AgentKind::Zed => home.join(".zed"),
                 };
                 cfg.exists().then_some(cfg)
             })
@@ -219,6 +307,80 @@ impl AgentKind {
                 has_core = home.join(".gemini/state").exists()
                     || home.join(".gemini/logs").exists();
             }
+            AgentKind::Zcode => {
+                has_app = Path::new("/Applications/ZCode.app").exists();
+                has_cli = which_cli("zcode") || which_cli("zcode-cli");
+                has_core = home.join(".zcode/setting.json").exists()
+                    || home.join(".zcode/cli").exists()
+                    || home.join(".zcode/v2/config.json").exists();
+            }
+            AgentKind::Qwen => {
+                has_app = false;
+                has_cli = which_cli("qwen");
+                has_core = home.join(".qwen/settings.json").exists()
+                    || home.join(".qwen/oauth_creds.json").exists();
+            }
+            AgentKind::IFlow => {
+                has_app = false;
+                has_cli = which_cli("iflow");
+                has_core = home.join(".iflow/settings.json").exists()
+                    || home.join(".iflow/client.yaml").exists();
+            }
+            AgentKind::Copilot => {
+                has_app = false;
+                has_cli = which_cli("copilot");
+                has_core = home.join(".copilot/config.json").exists();
+            }
+            AgentKind::Amp => {
+                has_app = false;
+                has_cli = which_cli("amp");
+                has_core = home.join(".config/amp/settings.json").exists()
+                    || home.join(".config/amp/auth.json").exists();
+            }
+            AgentKind::Crush => {
+                has_app = false;
+                has_cli = which_cli("crush");
+                has_core = home.join(".config/crush/crush.json").exists();
+            }
+            AgentKind::Goose => {
+                has_app = false;
+                has_cli = which_cli("goose");
+                has_core = home.join(".config/goose/config.yaml").exists();
+            }
+            AgentKind::Windsurf => {
+                has_app = Path::new("/Applications/Windsurf.app").exists();
+                has_cli = which_cli("windsurf");
+                has_core = home.join(".codeium/windsurf/home").exists()
+                    || home.join(".codeium/windsurf/profiles").exists();
+            }
+            AgentKind::Kiro => {
+                has_app = Path::new("/Applications/Kiro.app").exists();
+                has_cli = which_cli("kiro");
+                has_core = home.join(".kiro/settings").exists()
+                    || home.join(".kiro/agent-configs").exists();
+            }
+            AgentKind::Cline => {
+                has_app = false;
+                has_cli = which_cli("cline");
+                has_core = home
+                    .join("Library/Application Support/Code/User/globalStorage/saoudrizwan.claude-dev")
+                    .exists();
+            }
+            AgentKind::Roo => {
+                has_app = false;
+                has_cli = which_cli("roo");
+                has_core = home
+                    .join("Library/Application Support/Code/User/globalStorage/RooCodeInc.roo-code")
+                    .exists()
+                    || home
+                        .join("Library/Application Support/Code/User/globalStorage/RooVeterinaryInc.roo-cline")
+                        .exists();
+            }
+            AgentKind::Zed => {
+                has_app = Path::new("/Applications/Zed.app").exists();
+                has_cli = which_cli("zed");
+                has_core = home.join(".config/zed/settings.json").exists();
+            }
         }
         if has_app || has_cli || has_core {
             AgentStatus::Installed
@@ -245,6 +407,18 @@ impl AgentKind {
             AgentKind::OpenClaw => ".openclaw",
             AgentKind::Cursor => ".cursor",
             AgentKind::Gemini => ".gemini",
+            AgentKind::Zcode => ".zcode",
+            AgentKind::Qwen => ".qwen",
+            AgentKind::IFlow => ".iflow",
+            AgentKind::Copilot => ".copilot",
+            AgentKind::Amp => ".config/amp",
+            AgentKind::Crush => ".config/crush",
+            AgentKind::Goose => ".config/goose",
+            AgentKind::Windsurf => ".codeium/windsurf",
+            AgentKind::Kiro => ".kiro",
+            AgentKind::Cline => ".cline",
+            AgentKind::Roo => ".roo",
+            AgentKind::Zed => ".zed",
         }
     }
 
@@ -263,6 +437,18 @@ impl AgentKind {
             AgentKind::OpenClaw => "https://github.com/lem-project/openclaw",
             AgentKind::Cursor => "https://cursor.com",
             AgentKind::Gemini => "https://gemini.google.com",
+            AgentKind::Zcode => "https://z.ai",
+            AgentKind::Qwen => "https://github.com/QwenLM/qwen-code",
+            AgentKind::IFlow => "https://iflow.cn",
+            AgentKind::Copilot => "https://github.com/features/copilot",
+            AgentKind::Amp => "https://ampcode.com",
+            AgentKind::Crush => "https://github.com/charmbracelet/crush",
+            AgentKind::Goose => "https://block.github.io/goose",
+            AgentKind::Windsurf => "https://windsurf.com",
+            AgentKind::Kiro => "https://kiro.dev",
+            AgentKind::Cline => "https://cline.bot",
+            AgentKind::Roo => "https://roocode.com",
+            AgentKind::Zed => "https://zed.dev",
         }
     }
 }
@@ -345,6 +531,18 @@ pub fn all_agents() -> Vec<AgentKind> {
         OpenClaw,
         Cursor,
         Gemini,
+        Zcode,
+        Qwen,
+        IFlow,
+        Copilot,
+        Amp,
+        Crush,
+        Goose,
+        Windsurf,
+        Kiro,
+        Cline,
+        Roo,
+        Zed,
     ]
 }
 
@@ -353,10 +551,40 @@ pub fn home_dir() -> PathBuf {
     dirs::home_dir().expect("无法获取用户主目录")
 }
 
+/// 目录/文件的"最新内容修改时间"：递归取最大 mtime。
+/// 目录 mtime 只在直接子项增删/重命名时更新，深层文件改动感知不到，
+/// 因此判断新旧一律用本函数。
+pub fn newest_mtime(p: &Path) -> Option<SystemTime> {
+    let md = std::fs::metadata(p).ok()?;
+    let mut best = md.modified().ok();
+    if md.is_dir() {
+        if let Ok(entries) = std::fs::read_dir(p) {
+            for e in entries.flatten() {
+                if let Some(t) = newest_mtime(&e.path()) {
+                    best = Some(match best {
+                        Some(b) if b >= t => b,
+                        _ => t,
+                    });
+                }
+            }
+        }
+    }
+    best
+}
+
 /// 检测某个 CLI 命令是否在 PATH 中
 pub fn which_cli(cmd: &str) -> bool {
-    let path_env = std::env::var_os("PATH").unwrap_or_default();
-    for dir in std::env::split_paths(&path_env) {
+    let mut dirs: Vec<PathBuf> =
+        std::env::split_paths(&std::env::var_os("PATH").unwrap_or_default()).collect();
+    // GUI 启动（Finder/Dock）时 PATH 只有系统目录，补上常见的 CLI 安装位置
+    if let Some(home) = dirs::home_dir() {
+        for rel in [".npm-global/bin", ".local/bin", ".cargo/bin", ".bun/bin", "bin"] {
+            dirs.push(home.join(rel));
+        }
+        dirs.push(PathBuf::from("/usr/local/bin"));
+        dirs.push(PathBuf::from("/opt/homebrew/bin"));
+    }
+    for dir in dirs {
         let candidate = dir.join(cmd);
         if candidate.is_file() {
             return true;
@@ -367,9 +595,10 @@ pub fn which_cli(cmd: &str) -> bool {
 
 /// 扫描单个 agent 的 skills，返回已安装技能列表
 pub fn scan_agent_skills(kind: AgentKind) -> Vec<SkillInfo> {
-    let Some(skills_dir) = kind.detect() else {
+    let Some(skills_dir) = kind.skills_dir() else {
         return Vec::new();
     };
+    let ssot = ssot_skills_dir();
     let mut out = Vec::new();
     if let Ok(entries) = std::fs::read_dir(&skills_dir) {
         for e in entries.flatten() {
@@ -394,12 +623,23 @@ pub fn scan_agent_skills(kind: AgentKind) -> Vec<SkillInfo> {
             // 探测 SKILL.md（某些技能用 SKILL.md，插件可能是其他形式）
             let has_skill_md = real.join("SKILL.md").exists();
             let desc = read_frontmatter_desc(&real.join("SKILL.md"));
+            // agent 侧同名真实目录是否比本地库新（提示"可更新到库"）
+            let lib_path = ssot.join(&name);
+            let has_newer = if !is_link && lib_path.is_dir() {
+                match (newest_mtime(&real), newest_mtime(&lib_path)) {
+                    (Some(a), Some(b)) => a > b,
+                    _ => false,
+                }
+            } else {
+                false
+            };
             out.push(SkillInfo {
                 name,
                 path: path.to_string_lossy().to_string(),
                 is_link,
                 has_skill_md,
                 description: desc,
+                has_newer,
             });
         }
     }
@@ -455,6 +695,9 @@ pub struct SkillInfo {
     pub is_link: bool,
     pub has_skill_md: bool,
     pub description: String,
+    /// 该 agent 里的真实目录比本地库同名技能新（可"更新"到库）
+    #[serde(default)]
+    pub has_newer: bool,
 }
 
 /// 扫描主目录下所有 agent 及技能（供前端一次拉取）
@@ -478,7 +721,7 @@ pub struct AgentScan {
 pub fn scan_all() -> ScanResult {
     let mut agents = Vec::new();
     for kind in all_agents() {
-        let skills_dir = kind.detect().map(|p| p.to_string_lossy().to_string());
+        let skills_dir = kind.skills_dir().map(|p| p.to_string_lossy().to_string());
         let skills = scan_agent_skills(kind);
         let status = kind.status();
         let status_str = match status {
@@ -497,6 +740,5 @@ pub fn scan_all() -> ScanResult {
             skills,
         });
     }
-    let _ = HashMap::<String, String>::new();
     ScanResult { agents }
 }

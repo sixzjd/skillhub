@@ -28,6 +28,11 @@ export const ja: Messages = {
     viewSkills: "スキルを表示",
     delete: "削除",
     deleteConfirm: "このスキルを削除しますか？リンクは直接削除され、実ディレクトリはゴミ箱に移動されます。",
+    deleteSelectedConfirm: "選択したスキルを削除しますか？リンクは直接削除され、実ディレクトリはゴミ箱に移動されます。",
+    install: "インストール",
+    selected: "選択中",
+    count: "エージェント",
+    hasNewer: "更新あり",
   },
   library: {
     title: "ローカルライブラリ",
@@ -55,6 +60,7 @@ export const ja: Messages = {
     noTarget: "少なくとも1つのエージェントを選択してください",
     done: "同期完了",
     resultTitle: "同期結果",
+    deselectAll: "選択解除",
   },
   market: {
     title: "スキルマーケット",
@@ -72,6 +78,8 @@ export const ja: Messages = {
     addMarket: "マーケットを追加",
     removeMarket: "マーケットを削除",
     alreadyExists: "このマーケットは既に存在します",
+    update: "更新",
+    skillCount: "スキル",
   },
   settings: {
     title: "設定",
@@ -99,5 +107,6 @@ export const ja: Messages = {
     loading: "読み込み中…",
     error: "エラー",
     empty: "データなし",
+    items: "件",
   },
 };

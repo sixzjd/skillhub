@@ -59,3 +59,34 @@ body {
 .dark ::selection {
   background: rgb(224 122 100 / 0.26);
 }
+
+/* 动效：只用 transform/opacity，入场 ease-out，反馈 ≤200ms */
+@keyframes page-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop-in {
+  from { opacity: 0; transform: scale(0.97) translateY(4px); }
+  to { opacity: 1; transform: scale(1) translateY(0); }
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slide-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-page-in { animation: page-in 180ms ease-out; }
+.animate-pop-in { animation: pop-in 160ms ease-out; }
+.animate-fade-in { animation: fade-in 150ms ease-out; }
+.animate-slide-up { animation: slide-up 200ms ease-out; }
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}

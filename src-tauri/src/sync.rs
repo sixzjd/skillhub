@@ -27,7 +27,7 @@ pub struct AgentSyncReport {
 /// 这些是 agent 自带/内置技能，绝不外传、绝不覆盖。
 fn builtin_skill_names(agent: AgentKind) -> HashSet<String> {
     let mut set = HashSet::new();
-    let skills_dir = agent.detect();
+    let skills_dir = agent.skills_dir();
     if let Some(dir) = skills_dir {
         if let Ok(entries) = fs::read_dir(&dir) {
             for e in entries.flatten() {
@@ -94,10 +94,12 @@ fn copy_dir_all(src: &Path, dst: &Path) -> std::io::Result<()> {
 ///  - SSOT 里已删除、但 agent 里残留指向 ssot 的链接 → 移入废纸篓
 ///  - skills 非空时只同步指定的技能
 pub fn sync_to_agent(agent: AgentKind, ssot: &Path, trash: &Path, skills: &[String], report: &mut AgentSyncReport) {
-    let Some(skills_dir) = agent.detect() else {
+    if agent.detect().is_none() {
         report.errors.push("agent 未安装或缺少 skills 目录".into());
         return;
-    };
+    }
+    // 只写候选 skills 目录（不存在则创建），绝不把技能散落进配置主目录
+    let skills_dir = agent.sync_dir();
     let builtin = builtin_skill_names(agent);
     let mut ssot_names = ssot_skill_names(ssot);
     // 如果指定了技能列表，只同步这些
@@ -246,7 +248,7 @@ pub fn agent_from_key(key: &str) -> Option<AgentKind> {
 
 /// 列出某个 agent 可写的 skills 目录（用于前端展示当前生效目录）
 pub fn agent_skills_dir(key: &str) -> Option<String> {
-    agent_from_key(key)?.detect().map(|p| p.to_string_lossy().to_string())
+    agent_from_key(key)?.skills_dir().map(|p| p.to_string_lossy().to_string())
 }
 
 /// 删除某 agent 里的技能：
@@ -255,7 +257,7 @@ pub fn agent_skills_dir(key: &str) -> Option<String> {
 /// 返回 "unlinked" 或 "trashed:<id>"
 pub fn delete_agent_skill(agent_key: &str, name: &str) -> Result<String, String> {
     let kind = agent_from_key(agent_key).ok_or_else(|| "未知 agent".to_string())?;
-    let skills_dir = kind.detect().ok_or_else(|| "agent 未安装或缺少 skills 目录".to_string())?;
+    let skills_dir = kind.skills_dir().ok_or_else(|| "agent 未安装或缺少 skills 目录".to_string())?;
     let path = skills_dir.join(name);
     if !path.exists() && !path.is_symlink() {
         return Err(format!("技能不存在: {name}"));

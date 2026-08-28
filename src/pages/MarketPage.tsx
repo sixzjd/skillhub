@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useI18n } from "../hooks/useI18n";
 import { listAllMarkets, addMarket, removeMarket, fetchMarketSkills, installMarketSkill, listLibrary } from "../lib/tauri";
 import type { Marketplace, MarketSkill } from "../lib/tauri";
@@ -11,6 +11,7 @@ export function MarketPage() {
   const [active, setActive] = useState<Marketplace | null>(null);
   const [skills, setSkills] = useState<MarketSkill[]>([]);
   const [installedNames, setInstalledNames] = useState<Set<string>>(new Set());
+  const [counts, setCounts] = useState<Record<string, number>>({});
   const [loadingMarket, setLoadingMarket] = useState(false);
   const [installing, setInstalling] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
@@ -18,6 +19,8 @@ export function MarketPage() {
   const [owner, setOwner] = useState("");
   const [repo, setRepo] = useState("");
   const [adding, setAdding] = useState(false);
+  // 市场技能列表缓存：卡片计数与打开市场共用，避免重复拉 tarball
+  const skillsCache = useRef<Record<string, MarketSkill[]>>({});
 
   const loadMarkets = () =>
     listAllMarkets()
@@ -43,6 +46,22 @@ export function MarketPage() {
   useEffect(() => {
     loadInstalled();
   }, [installing]);
+
+  // 卡片上的技能数：逐市场后台拉取（复用缓存，失败静默）
+  useEffect(() => {
+    for (const m of markets) {
+      if (skillsCache.current[m.id] || counts[m.id] !== undefined) continue;
+      fetchMarketSkills(m)
+        .then((list) => {
+          skillsCache.current[m.id] = list;
+          setCounts((c) => ({ ...c, [m.id]: list.length }));
+        })
+        .catch(() => {
+          setCounts((c) => ({ ...c, [m.id]: -1 }));
+        });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [markets]);
 
   const isCustom = (m: Marketplace) => m.id.startsWith("custom-");
 
@@ -77,11 +96,18 @@ export function MarketPage() {
 
   const openMarket = async (m: Marketplace) => {
     setActive(m);
-    setLoadingMarket(true);
     setError(null);
+    const cached = skillsCache.current[m.id];
+    if (cached) {
+      setSkills(cached);
+      return;
+    }
+    setLoadingMarket(true);
     try {
       const list = await fetchMarketSkills(m);
+      skillsCache.current[m.id] = list;
       setSkills(list);
+      setCounts((c) => ({ ...c, [m.id]: list.length }));
     } catch (e) {
       setError(`${t.market.loadError}: ${e}`);
       setSkills([]);
@@ -109,8 +135,8 @@ export function MarketPage() {
   return (
     <div className="space-y-6">
       <div>
-        <h1 className="text-xl font-semibold">{t.market.title}</h1>
-        <p className="text-sm text-[#8a7b6c]">{t.market.subtitle}</p>
+          <h1 className="text-xl font-semibold text-balance">{t.market.title}</h1>
+          <p className="text-sm text-[#8a7b6c]">{t.market.subtitle}</p>
       </div>
 
       {error && (
@@ -132,13 +158,13 @@ export function MarketPage() {
         <CardContent>
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
-              className="rounded-md border border-[#d9cfc4] bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-[#9a8b7c] focus:border-[#231c18] dark:border-[#3e342c] dark:focus:border-[#e8dfd5]"
+              className="rounded-md border border-[#d9cfc4] bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-[#9a8b7c] focus:border-[#231c18] focus-visible:ring-2 focus-visible:ring-[#c0543e]/20 dark:border-[#3e342c] dark:focus:border-[#e8dfd5] dark:focus-visible:ring-[#c0543e]/25"
               placeholder={t.market.owner}
               value={owner}
               onChange={(e) => setOwner(e.target.value)}
             />
             <input
-              className="rounded-md border border-[#d9cfc4] bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-[#9a8b7c] focus:border-[#231c18] dark:border-[#3e342c] dark:focus:border-[#e8dfd5]"
+              className="rounded-md border border-[#d9cfc4] bg-transparent px-3 py-2 text-sm outline-none transition-colors placeholder:text-[#9a8b7c] focus:border-[#231c18] focus-visible:ring-2 focus-visible:ring-[#c0543e]/20 dark:border-[#3e342c] dark:focus:border-[#e8dfd5] dark:focus-visible:ring-[#c0543e]/25"
               placeholder={t.market.repo}
               value={repo}
               onChange={(e) => setRepo(e.target.value)}
@@ -174,6 +200,7 @@ export function MarketPage() {
                     <button
                       className="rounded px-1 text-[#9a8b7c] transition-colors hover:bg-red-100 hover:text-red-600 dark:hover:bg-red-900/50"
                       title={t.market.removeMarket}
+                      aria-label={t.market.removeMarket}
                       onClick={(e) => {
                         e.stopPropagation();
                         void doRemove(m);
@@ -185,9 +212,16 @@ export function MarketPage() {
                 </div>
               </div>
               <CardDescription>{m.description}</CardDescription>
-              <CardDescription className="font-mono text-[10px]">
-                {m.owner}/{m.repo}
-              </CardDescription>
+              <div className="flex items-center justify-between">
+                <CardDescription className="font-mono text-[10px]">
+                  {m.owner}/{m.repo}
+                </CardDescription>
+                {counts[m.id] !== undefined && counts[m.id] >= 0 && (
+                  <span className="rounded-full bg-[#ebe3da] px-1.5 py-0.5 text-[10px] tabular-nums text-[#6a5a4e] dark:bg-[#2e2520] dark:text-[#a89b90]">
+                    {counts[m.id]} {t.market.skillCount}
+                  </span>
+                )}
+              </div>
             </CardHeader>
           </Card>
         ))}
@@ -222,7 +256,18 @@ export function MarketPage() {
                         )}
                       </div>
                       {isInstalled ? (
-                        <span className="shrink-0 text-xs text-[#9a8b7c]">{t.market.installed}</span>
+                        <div className="flex shrink-0 items-center gap-2">
+                          <span className="text-xs text-[#9a8b7c]">{t.market.installed}</span>
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            disabled={installing === s.name}
+                            onClick={() => doInstall(s)}
+                            title={t.market.update}
+                          >
+                            {installing === s.name ? t.market.installing : t.market.update}
+                          </Button>
+                        </div>
                       ) : (
                         <Button
                           size="sm"

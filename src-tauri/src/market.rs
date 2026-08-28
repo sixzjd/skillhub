@@ -109,6 +109,14 @@ pub fn add_market(owner: &str, repo: &str) -> Result<Marketplace, String> {
     if owner.is_empty() || repo.is_empty() {
         return Err("owner 和 repo 不能为空".into());
     }
+    // owner/repo 会被拼进下载 URL，只允许 GitHub 命名空间字符
+    let valid = |s: &str| {
+        s.chars()
+            .all(|c| c.is_ascii_alphanumeric() || matches!(c, '.' | '-' | '_'))
+    };
+    if !valid(&owner) || !valid(&repo) {
+        return Err("owner/repo 只能包含字母、数字和 . - _".into());
+    }
     let path = markets_config_path();
     let mut custom: Vec<Marketplace> = std::fs::read_to_string(&path)
         .ok()
@@ -154,6 +162,17 @@ fn save_markets(path: &PathBuf, markets: &[Marketplace]) -> Result<(), String> {
 }
 
 static TMP_COUNTER: AtomicU64 = AtomicU64::new(0);
+
+/// 校验目标技能名：必须是单段路径，禁止穿越（恶意市场的 name 可能带 ../ 或绝对路径）
+fn is_safe_target(name: &str) -> bool {
+    !name.is_empty() && !name.contains(['/', '\\']) && name != "." && name != ".."
+}
+
+/// 校验仓库内来源路径：每段都不能是 .. 或空（防止读取 tarball 之外的文件）
+fn is_safe_source(src: &str) -> bool {
+    let src = src.trim_start_matches('/');
+    !src.is_empty() && src.split('/').all(|seg| !seg.is_empty() && seg != "..")
+}
 
 /// 共享异步客户端：超时 + 读取环境变量代理（HTTP(S)/ALL_PROXY）
 async fn build_client() -> Result<reqwest::Client, String> {
@@ -320,6 +339,9 @@ fn scan_repo(repo_root: &Path, market: &Marketplace) -> Vec<MarketSkill> {
 
 /// 从仓库内路径读取描述（SKILL.md 优先，其次任意 md），失败返回 None
 fn read_md_desc(repo_root: &Path, source: &str) -> Option<String> {
+    if !is_safe_source(source) {
+        return None;
+    }
     let p = repo_root.join(source.trim_start_matches('/'));
     let md = p.join("SKILL.md");
     let file = if md.is_file() {
@@ -338,6 +360,10 @@ pub async fn install_market_skill(
     skill_source: &str,
     target_dir: &str,
 ) -> Result<(), String> {
+    // 市场数据不可信：name/source 可能来自任意 marketplace.json，先校验再拼路径
+    if !is_safe_target(target_dir) || !is_safe_source(skill_source) {
+        return Err("非法的技能路径".into());
+    }
     let client = build_client().await?;
     let bytes = fetch_tarball(&client, market).await?;
     let tmp = unpack_tarball(&bytes)?;
@@ -353,6 +379,20 @@ pub async fn install_market_skill(
     let ssot = crate::agent::ssot_skills_dir().join(target_dir);
     std::fs::create_dir_all(ssot.parent().unwrap()).map_err(|e| e.to_string())?;
     copy_dir_all(&src_dir, &ssot).map_err(|e| e.to_string())?;
+
+    // 写入来源元数据：供后续"检查更新/一键更新"与来源追溯使用
+    let meta = serde_json::json!({
+        "name": target_dir,
+        "source": skill_source,
+        "owner": market.owner,
+        "repo": market.repo,
+        "market_id": market.id,
+        "installed_at": chrono::Local::now().to_rfc3339(),
+    });
+    let _ = std::fs::write(
+        ssot.join(".skillhub-meta.json"),
+        serde_json::to_string_pretty(&meta).unwrap_or_default(),
+    );
 
     // 清理临时目录
     let _ = std::fs::remove_dir_all(&tmp);

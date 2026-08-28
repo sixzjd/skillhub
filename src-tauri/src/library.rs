@@ -93,15 +93,15 @@ fn read_desc(skill_md: &Path) -> String {
 
 /// 判断库技能是否有更新的源：扫描已安装 agent 的 skills 目录里同名真实目录，
 /// 若任一新于库目录本身，则返回 (true, agent display)。
+/// 新旧比较用递归的"最新内容修改时间"（目录 mtime 对深层文件改动不敏感）。
 fn newer_source(lib_dir: &Path, name: &str) -> (bool, String) {
-    use std::time::SystemTime;
-    let lib_time = std::fs::metadata(lib_dir).and_then(|m| m.modified()).ok();
-    let mut best: Option<(String, SystemTime)> = None;
+    let lib_time = crate::agent::newest_mtime(lib_dir);
+    let mut best: Option<(String, std::time::SystemTime)> = None;
     for kind in crate::agent::all_agents() {
-        let Some(skills_dir) = kind.detect() else { continue };
+        let Some(skills_dir) = kind.skills_dir() else { continue };
         let p = skills_dir.join(name);
         if !p.is_symlink() && p.is_dir() {
-            if let Ok(t) = std::fs::metadata(&p).and_then(|m| m.modified()) {
+            if let Some(t) = crate::agent::newest_mtime(&p) {
                 if best.as_ref().map(|(_, bt)| t > *bt).unwrap_or(true) {
                     best = Some((kind.display().to_string(), t));
                 }
@@ -150,10 +150,33 @@ pub fn import_from_path(src: &str, name: &str) -> ImportResult {
         let _ = fs::rename(&dst, &backup);
     }
     copy_dir_all(src_p, &dst).ok();
+    // 从 agent 导入会覆盖市场安装的内容：清掉可能残留的市场来源元数据
+    let _ = std::fs::remove_file(dst.join(".skillhub-meta.json"));
+    prune_old_backups(&ssot, 30);
     // 导入后把源 agent 的真实目录转成指向库的链接（省空间、统一管理）
     crate::agent::dedupe_agent_source(src_p, name);
     result.imported.push(name.to_string());
     result
+}
+
+/// 清理 .backup 里超过 keep_days 的旧备份，防止无限膨胀
+fn prune_old_backups(ssot: &Path, keep_days: u64) {
+    let backup_dir = ssot.join(".backup");
+    let Ok(entries) = fs::read_dir(&backup_dir) else { return };
+    let cutoff = std::time::SystemTime::now()
+        .checked_sub(std::time::Duration::from_secs(keep_days * 86400));
+    let Some(cutoff) = cutoff else { return };
+    for e in entries.flatten() {
+        let Ok(md) = e.metadata() else { continue };
+        let Ok(m) = md.modified() else { continue };
+        if m < cutoff {
+            let _ = if md.is_dir() {
+                fs::remove_dir_all(e.path())
+            } else {
+                fs::remove_file(e.path())
+            };
+        }
+    }
 }
 
 /// 读取本地库技能的 SKILL.md 内容（供前端预览）

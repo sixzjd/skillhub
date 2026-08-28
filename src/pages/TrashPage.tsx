@@ -78,7 +78,7 @@ export function TrashPage() {
     <div className="space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-xl font-semibold">{t.trash.title}</h1>
+          <h1 className="text-xl font-semibold text-balance">{t.trash.title}</h1>
           <p className="text-sm text-[#8a7b6c]">{t.trash.subtitle}</p>
         </div>
         {items.length > 0 && (
@@ -95,7 +95,7 @@ export function TrashPage() {
       )}
 
       {toast && (
-        <div className="fixed right-6 top-6 z-50 rounded-lg bg-[#231c18] px-4 py-2 text-sm text-white shadow-lg dark:bg-[#fdf9f5] dark:text-[#3a2e28]">
+        <div className="fixed right-6 top-6 z-50 rounded-lg bg-[#231c18] px-4 py-2 text-sm text-white shadow-lg animate-slide-up dark:bg-[#fdf9f5] dark:text-[#3a2e28]">
           {toast}
         </div>
       )}
@@ -104,7 +104,7 @@ export function TrashPage() {
         <CardHeader>
           <div className="flex items-center justify-between">
             <CardTitle>{t.trash.title}</CardTitle>
-            <span className="text-xs text-[#9a8b7c]">{items.length} items</span>
+            <span className="text-xs text-[#9a8b7c] tabular-nums">{items.length} {t.common.items}</span>
           </div>
         </CardHeader>
         <CardContent>

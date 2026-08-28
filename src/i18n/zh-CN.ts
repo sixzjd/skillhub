@@ -26,6 +26,11 @@ export const zhCN = {
     viewSkills: "查看技能",
     delete: "删除",
     deleteConfirm: "确定删除此技能？链接将直接移除，真实目录将移入回收站。",
+    deleteSelectedConfirm: "确定删除选中的技能？链接将直接移除，真实目录将移入回收站。",
+    install: "安装",
+    selected: "已选",
+    count: "个 Agent",
+    hasNewer: "可更新",
   },
   library: {
     title: "本地技能库",
@@ -53,6 +58,7 @@ export const zhCN = {
     noTarget: "请至少选择一个 Agent",
     done: "同步完成",
     resultTitle: "同步结果",
+    deselectAll: "取消全选",
   },
   market: {
     title: "技能市场",
@@ -70,6 +76,8 @@ export const zhCN = {
     addMarket: "添加市场",
     removeMarket: "移除市场",
     alreadyExists: "该市场已存在",
+    update: "更新",
+    skillCount: "个技能",
   },
   settings: {
     title: "设置",
@@ -97,6 +105,7 @@ export const zhCN = {
     loading: "加载中…",
     error: "错误",
     empty: "暂无数据",
+    items: "项",
   },
 };
 

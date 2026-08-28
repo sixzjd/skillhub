@@ -1,0 +1,411 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#0b0f14">
+  <meta name="description" content="SkillHub 是一款跨 Agent 技能管理器：扫描本机 Claude Code、Codex、Qoder、Trae、Cursor 等 24 个 AI Agent，统一管理、同步、安装技能。免费 · 开源 · 本地优先。">
+  <meta name="keywords" content="SkillHub, Agent Skills, Claude Code, Codex, 技能管理, SKILL.md, skills manager, AI Agent, macOS, Windows">
+  <meta name="author" content="sixzjd">
+  <meta name="robots" content="index,follow">
+  <link rel="canonical" href="https://skillhub.sixzjd.sbs/">
+  <link rel="icon" type="image/png" href="./favicon.png">
+  <title>SkillHub — 一个库，管理所有 AI Agent 的技能</title>
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="SkillHub">
+  <meta property="og:title" content="SkillHub — 跨 Agent 技能管理器">
+  <meta property="og:description" content="扫描、导入、同步、安装：把所有 AI Agent 的技能统一到一个本地库。支持 24 个主流 Agent。">
+  <meta property="og:url" content="https://skillhub.sixzjd.sbs/">
+  <meta property="og:image" content="https://skillhub.sixzjd.sbs/icon.png">
+  <meta name="twitter:card" content="summary">
+  <meta name="twitter:title" content="SkillHub — 跨 Agent 技能管理器">
+  <meta name="twitter:description" content="One library for every AI agent's skills. Free, open source, local-first.">
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
+
+    :root {
+      --bg: #0b0f14;
+      --bg-soft: #12100e;
+      --panel: rgba(30, 24, 21, .72);
+      --panel-solid: #1a1512;
+      --panel-hover: #241c17;
+      --line: rgba(240, 214, 200, .12);
+      --line-strong: rgba(224, 122, 100, .45);
+      --text: #faf6f2;
+      --muted: #b3a498;
+      --faint: #7d6f64;
+      --accent: #e07a64;
+      --accent-strong: #c0543e;
+      --green: #79e2a1;
+      --amber: #f0c674;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 24px;
+      --ease: cubic-bezier(.16, 1, .3, 1);
+      --shadow: 0 24px 80px rgba(0, 0, 0, .35);
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      background: var(--bg);
+      color: var(--text);
+      font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC", "Microsoft YaHei", sans-serif;
+      line-height: 1.6;
+      -webkit-font-smoothing: antialiased;
+      overflow-x: hidden;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background:
+        radial-gradient(circle at 78% 6%, rgba(224, 122, 100, .12), transparent 30%),
+        radial-gradient(circle at 6% 42%, rgba(192, 84, 62, .09), transparent 26%);
+      z-index: -2;
+    }
+    a { color: inherit; }
+    button { font: inherit; }
+    :focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+
+    .mono {
+      font-family: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, monospace;
+    }
+
+    .wrap { max-width: 1060px; margin: 0 auto; padding: 0 24px; }
+
+    /* ── 顶栏 ─────────────────────────────── */
+    header {
+      position: sticky; top: 0; z-index: 50;
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      background: rgba(11, 15, 20, .72);
+      border-bottom: 1px solid var(--line);
+    }
+    .nav {
+      display: flex; align-items: center; gap: 14px;
+      padding: 14px 0;
+    }
+    .nav img { width: 34px; height: 34px; border-radius: 9px; }
+    .nav .name { font-weight: 700; letter-spacing: -.01em; }
+    .nav .tag { color: var(--faint); font-size: 12px; margin-left: 2px; }
+    .nav .links { margin-left: auto; display: flex; gap: 22px; font-size: 14px; }
+    .nav .links a { color: var(--muted); text-decoration: none; transition: color .15s var(--ease); }
+    .nav .links a:hover { color: var(--text); }
+    @media (max-width: 640px) { .nav .tag { display: none; } .nav .links { gap: 14px; font-size: 13px; } }
+
+    /* ── Hero ─────────────────────────────── */
+    .hero { padding: 96px 0 72px; }
+    .hero .kicker {
+      display: inline-flex; align-items: center; gap: 8px;
+      border: 1px solid var(--line-strong);
+      color: var(--accent);
+      border-radius: 999px;
+      padding: 5px 14px;
+      font-size: 12.5px;
+      letter-spacing: .08em;
+      text-transform: uppercase;
+    }
+    .hero .kicker .dot {
+      width: 6px; height: 6px; border-radius: 50%;
+      background: var(--accent);
+      animation: pulse 2.4s infinite;
+    }
+    @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+    @media (prefers-reduced-motion: reduce) { .hero .kicker .dot { animation: none; } }
+    .hero h1 {
+      font-size: clamp(34px, 6vw, 58px);
+      line-height: 1.12;
+      letter-spacing: -.03em;
+      font-weight: 800;
+      margin: 22px 0 16px;
+      max-width: 720px;
+    }
+    .hero h1 .accent { color: var(--accent); }
+    .hero p.sub { color: var(--muted); font-size: 18px; max-width: 560px; margin: 0 0 14px; }
+    .hero .meta {
+      color: var(--faint); font-size: 13px; margin-bottom: 34px;
+    }
+    .hero .meta span { margin-right: 18px; white-space: nowrap; }
+    .cta { display: flex; flex-wrap: wrap; gap: 14px; }
+    .btn {
+      display: inline-flex; align-items: center; gap: 9px;
+      padding: 13px 26px;
+      border-radius: var(--radius-sm);
+      font-weight: 600; font-size: 15px;
+      text-decoration: none;
+      transition: transform .15s var(--ease), background .15s var(--ease), border-color .15s var(--ease);
+    }
+    .btn:active { transform: scale(.98); }
+    .btn.primary { background: var(--accent-strong); color: #fff; }
+    .btn.primary:hover { background: var(--accent); }
+    .btn.ghost { border: 1px solid var(--line); color: var(--text); }
+    .btn.ghost:hover { border-color: var(--line-strong); background: rgba(224, 122, 100, .06); }
+    .btn small { font-weight: 400; opacity: .75; font-size: 12px; }
+
+    /* ── 终端模拟 ─────────────────────────── */
+    .term {
+      margin: 54px 0 0;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+      max-width: 780px;
+    }
+    .term .bar {
+      display: flex; align-items: center; gap: 7px;
+      padding: 11px 16px;
+      border-bottom: 1px solid var(--line);
+      background: rgba(255, 255, 255, .02);
+    }
+    .term .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--faint); opacity: .5; }
+    .term .bar .title { margin-left: auto; color: var(--faint); font-size: 12px; }
+    .term pre {
+      margin: 0; padding: 20px 22px;
+      font-family: "JetBrains Mono", ui-monospace, monospace;
+      font-size: 13px; line-height: 1.75;
+      color: var(--muted);
+      overflow-x: auto;
+    }
+    .term .c-accent { color: var(--accent); }
+    .term .c-green { color: var(--green); }
+    .term .c-text { color: var(--text); }
+    .term .c-faint { color: var(--faint); }
+
+    /* ── 章节编号 ─────────────────────────── */
+    section { padding: 76px 0; }
+    .sec-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 12px; }
+    .sec-head .no {
+      font-family: "JetBrains Mono", monospace;
+      color: var(--accent);
+      font-size: 14px; letter-spacing: .1em;
+    }
+    .sec-head h2 { font-size: clamp(24px, 3.4vw, 32px); letter-spacing: -.02em; margin: 0; }
+    .sec-sub { color: var(--muted); max-width: 620px; margin: 0 0 34px; }
+
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .card {
+      border: 1px solid var(--line);
+      border-radius: var(--radius-md);
+      background: var(--panel);
+      padding: 22px;
+      transition: border-color .2s var(--ease), background .2s var(--ease), transform .2s var(--ease);
+    }
+    .card:hover { border-color: var(--line-strong); background: var(--panel-hover); transform: translateY(-2px); }
+    @media (prefers-reduced-motion: reduce) { .card:hover { transform: none; } }
+    .card .sym { color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 13px; }
+    .card h3 { margin: 10px 0 6px; font-size: 16.5px; letter-spacing: -.01em; }
+    .card p { margin: 0; color: var(--muted); font-size: 14px; }
+
+    /* agents 墙 */
+    .agents-wall {
+      display: flex; flex-wrap: wrap; gap: 9px; max-width: 780px;
+    }
+    .agents-wall span {
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      padding: 6px 15px;
+      font-size: 13px;
+      color: var(--muted);
+      font-family: "JetBrains Mono", monospace;
+      transition: color .15s var(--ease), border-color .15s var(--ease);
+    }
+    .agents-wall span:hover { color: var(--accent); border-color: var(--line-strong); }
+    .agents-wall span.on { color: var(--text); border-color: var(--line-strong); background: rgba(224, 122, 100, .08); }
+
+    /* ── 下载区 ───────────────────────────── */
+    .download-box {
+      border: 1px solid var(--line-strong);
+      border-radius: var(--radius-lg);
+      background: var(--panel);
+      box-shadow: var(--shadow);
+      padding: 40px;
+      display: flex; flex-wrap: wrap; gap: 32px; align-items: center; justify-content: space-between;
+    }
+    .download-box h2 { margin: 0 0 6px; font-size: 26px; letter-spacing: -.02em; }
+    .download-box p { margin: 0; color: var(--muted); font-size: 14px; }
+    .dl-list { display: flex; flex-direction: column; gap: 10px; min-width: 280px; }
+    .dl-row {
+      display: flex; align-items: center; justify-content: space-between; gap: 18px;
+      border: 1px solid var(--line);
+      border-radius: var(--radius-sm);
+      padding: 12px 18px;
+      text-decoration: none;
+      transition: border-color .15s var(--ease), background .15s var(--ease);
+    }
+    .dl-row:hover { border-color: var(--line-strong); background: var(--panel-hover); }
+    .dl-row .os { font-weight: 600; font-size: 14px; }
+    .dl-row .fmt { color: var(--faint); font-size: 12px; font-family: "JetBrains Mono", monospace; }
+
+    footer { border-top: 1px solid var(--line); padding: 34px 0 44px; margin-top: 40px; }
+    .foot { display: flex; flex-wrap: wrap; gap: 16px; align-items: center; justify-content: space-between; color: var(--faint); font-size: 13px; }
+    .foot a { color: var(--muted); text-decoration: none; }
+    .foot a:hover { color: var(--accent); }
+
+    .reveal { opacity: 0; transform: translateY(14px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
+    .reveal.in { opacity: 1; transform: none; }
+    @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="wrap nav">
+      <img src="./icon.png" alt="SkillHub 图标" width="34" height="34">
+      <span class="name">SkillHub</span>
+      <span class="tag mono">cross-agent skills manager</span>
+      <nav class="links" aria-label="页面导航">
+        <a href="#workflow">工作流</a>
+        <a href="#agents">支持的 Agent</a>
+        <a href="#download">下载</a>
+        <a href="https://github.com/sixzjd/skillhub" target="_blank" rel="noopener">GitHub</a>
+      </nav>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <div class="wrap hero">
+      <span class="kicker mono"><span class="dot" aria-hidden="true"></span>SSOT · ~/.agents/skills</span>
+      <h1>一个库，管理<br>所有 AI Agent 的<span class="accent">技能</span></h1>
+      <p class="sub">SkillHub 扫描本机的 Claude Code、Codex、Qoder、Trae、Cursor 等 24 个 Agent，把散落各处的技能收进一个本地库，再一键同步到任何 Agent。</p>
+      <p class="meta mono">
+        <span>◆ 免费开源</span>
+        <span>◆ 本地优先</span>
+        <span>◆ 软链接同步</span>
+        <span>◆ v0.2.1</span>
+      </p>
+      <div class="cta">
+        <a class="btn primary" href="https://github.com/sixzjd/skillhub/releases/latest" target="_blank" rel="noopener">
+          下载 SkillHub <small>macOS / Windows</small>
+        </a>
+        <a class="btn ghost" href="https://github.com/sixzjd/skillhub" target="_blank" rel="noopener">查看源码</a>
+      </div>
+
+      <div class="term" role="img" aria-label="SkillHub 扫描流程的终端演示">
+        <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span class="title mono">skillhub — scan</span></div>
+        <pre><span class="c-accent">$</span> <span class="c-text">skillhub scan</span>
+<span class="c-faint">›</span> 扫描本机 Agent …
+  <span class="c-green">✓</span> Claude Code   <span class="c-faint">~/.claude/skills</span>        13 skills
+  <span class="c-green">✓</span> Codex         <span class="c-faint">~/.codex/skills</span>         13 skills
+  <span class="c-green">✓</span> Qoder         <span class="c-faint">~/.qoder</span>                20 skills
+  <span class="c-green">✓</span> CodeWhale     <span class="c-faint">~/.codewhale/skills</span>     54 skills
+  <span class="c-green">✓</span> ZCode         <span class="c-faint">~/.zcode/skills</span>          1 skill
+  <span class="c-green">✓</span> GitHub Copilot <span class="c-faint">~/.copilot</span>              5 skills
+<span class="c-accent">$</span> <span class="c-text">skillhub sync --all</span>
+<span class="c-green">✓</span> 软链接同步完成 · 内置技能已保护 · 0 冲突</pre>
+      </div>
+    </div>
+
+    <!-- 工作流 -->
+    <section id="workflow">
+      <div class="wrap">
+        <div class="sec-head reveal"><span class="no">01 / WORKFLOW</span><h2>四步，技能不再散落</h2></div>
+        <p class="sec-sub reveal">从扫描到同步全自动：内置技能绝不外传、绝不覆盖；删除只进回收站，可随时恢复。</p>
+        <div class="grid">
+          <div class="card reveal">
+            <span class="sym">SCAN</span>
+            <h3>扫描 Agent</h3>
+            <p>自动检测本机 24 个主流 Agent 及其技能目录，区分"已安装 / 未安装 / 卸载残留"。</p>
+          </div>
+          <div class="card reveal">
+            <span class="sym">IMPORT</span>
+            <h3>导入本地库</h3>
+            <p>勾选任意 Agent 的技能导入 ~/.agents/skills 单一事实源，源目录自动转为链接，省空间且改动即生效。</p>
+          </div>
+          <div class="card reveal">
+            <span class="sym">SYNC</span>
+            <h3>同步到 Agent</h3>
+            <p>软链接优先、失败回退复制；各 Agent 内置技能自动跳过；孤儿链接自动回收进废纸篓。</p>
+          </div>
+          <div class="card reveal">
+            <span class="sym">MARKET</span>
+            <h3>市场安装</h3>
+            <p>内置 Anthropic 官方与社区市场，浏览、安装、更新一键完成；已装技能支持来源追溯与更新。</p>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 支持的 Agent -->
+    <section id="agents">
+      <div class="wrap">
+        <div class="sec-head reveal"><span class="no">02 / AGENTS</span><h2>开箱支持 24 个 Agent</h2></div>
+        <p class="sec-sub reveal">标注 <span class="mono" style="color:var(--accent)">●</span> 的为本机已检出。列表持续跟进主流与国内新兴 Agent。</p>
+        <div class="agents-wall reveal mono" id="agentsWall">
+          <span class="on">● Claude</span>
+          <span class="on">● Claude Code</span>
+          <span class="on">● Codex</span>
+          <span>○ Qoder</span>
+          <span>○ Qoder Work</span>
+          <span class="on">● CodeWhale</span>
+          <span>○ Trae</span>
+          <span>○ Reasonix</span>
+          <span class="on">● OpenCode</span>
+          <span>○ OpenClaw</span>
+          <span>○ Cursor</span>
+          <span class="on">● Gemini</span>
+          <span class="on">● ZCode</span>
+          <span>○ Qwen Code</span>
+          <span>○ iFlow CLI</span>
+          <span class="on">● GitHub Copilot</span>
+          <span>○ Amp</span>
+          <span>○ Crush</span>
+          <span>○ Goose</span>
+          <span>○ Windsurf</span>
+          <span>○ Kiro</span>
+          <span>○ Cline</span>
+          <span>○ Roo Code</span>
+          <span>○ Zed</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- 下载 -->
+    <section id="download">
+      <div class="wrap">
+        <div class="sec-head reveal"><span class="no">03 / DOWNLOAD</span><h2>获取 SkillHub</h2></div>
+        <p class="sec-sub reveal">所有安装包由 GitHub Actions 在干净环境中构建，可在 Release 页校验。</p>
+        <div class="download-box reveal">
+          <div>
+            <h2>v0.2.1</h2>
+            <p>24 个 Agent · 市场更新机制 · 全新 UI 与动效</p>
+            <p class="mono" style="margin-top:10px;color:var(--faint);font-size:12px">macOS 12+ · Windows 10+ · 免费开源 MIT</p>
+          </div>
+          <div class="dl-list">
+            <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases/latest" target="_blank" rel="noopener">
+              <span class="os">macOS</span><span class="fmt">.dmg · Apple Silicon</span>
+            </a>
+            <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases/latest" target="_blank" rel="noopener">
+              <span class="os">Windows</span><span class="fmt">.msi / .exe</span>
+            </a>
+            <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases" target="_blank" rel="noopener">
+              <span class="os">全部版本</span><span class="fmt">releases</span>
+            </a>
+          </div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap foot">
+      <span>© 2026 sixzjd · SkillHub</span>
+      <span class="mono">skillhub.sixzjd.sbs</span>
+      <span><a href="https://github.com/sixzjd/skillhub" target="_blank" rel="noopener">GitHub</a> · <a href="https://www.sixzjd.sbs" target="_blank" rel="noopener">作者主页</a></span>
+    </div>
+  </footer>
+
+  <script>
+    // 入场渐显（尊重系统减弱动态设置：CSS 侧已处理）
+    const io = new IntersectionObserver((entries) => {
+      for (const e of entries) {
+        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+      }
+    }, { threshold: 0.12 });
+    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+  </script>
+</body>
+</html>
