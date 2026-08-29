@@ -1,6 +1,6 @@
 [package]
 name = "skillhub"
-version = "0.2.1"
+version = "0.2.2"
 description = "SkillHub - Cross-agent skills manager"
 authors = ["sixzjd"]
 edition = "2021"

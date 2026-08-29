@@ -10,7 +10,7 @@
   <meta name="robots" content="index,follow">
   <link rel="canonical" href="https://skillhub.sixzjd.sbs/">
   <link rel="icon" type="image/png" href="./favicon.png">
-  <title>SkillHub — 一个库，管理所有 AI Agent 的技能</title>
+  <title>SkillHub — 一个库，管理所有 skill</title>
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="SkillHub">
   <meta property="og:title" content="SkillHub — 跨 Agent 技能管理器">
@@ -207,7 +207,10 @@
       border-bottom: 1px solid var(--line);
       background: var(--subtle);
     }
-    .term .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--faint); opacity: .5; }
+    .term .bar i { width: 11px; height: 11px; border-radius: 50%; }
+    .term .bar i:nth-child(1) { background: #ff5f57; }
+    .term .bar i:nth-child(2) { background: #febc2e; }
+    .term .bar i:nth-child(3) { background: #28c840; }
     .term .bar .title { margin-left: auto; color: var(--faint); font-size: 12px; }
     .term pre {
       margin: 0; padding: 20px 22px;
@@ -324,13 +327,13 @@
     <!-- Hero -->
     <div class="wrap hero">
       <span class="kicker mono"><span class="dot" aria-hidden="true"></span>SSOT · ~/.agents/skills</span>
-      <h1>一个库，管理<br>所有 AI Agent 的<span class="accent">技能</span></h1>
-      <p class="sub">扫描本机 24 个 AI Agent，技能统一进一个本地库，一键同步到任何 Agent。</p>
+      <h1>一个库<br>管理所有 <span class="accent">skill</span></h1>
+      <p class="sub">扫描 24 个 AI Agent，统一管理，一键同步。</p>
       <p class="meta mono">
         <span>◆ 免费开源</span>
         <span>◆ 本地优先</span>
         <span>◆ 软链接同步</span>
-        <span>◆ v0.2.1</span>
+        <span>◆ v0.2.2</span>
       </p>
       <div class="cta">
         <a class="btn primary" id="dl-hero" href="https://github.com/sixzjd/skillhub/releases/latest/download/SkillHub-macOS.dmg">
@@ -388,32 +391,32 @@
     <section id="agents">
       <div class="wrap">
         <div class="sec-head reveal"><span class="no">02 / AGENTS</span><h2>开箱支持 24 个 Agent</h2></div>
-        <p class="sec-sub reveal">标注 <span class="mono" style="color:var(--accent)">●</span> 为本机已检出。</p>
+        <p class="sec-sub reveal">覆盖主流与国内新兴，持续添加。</p>
         <div class="agents-wall reveal mono" id="agentsWall">
-          <span class="on">● Claude</span>
-          <span class="on">● Claude Code</span>
-          <span class="on">● Codex</span>
-          <span>○ Qoder</span>
-          <span>○ Qoder Work</span>
-          <span class="on">● CodeWhale</span>
-          <span>○ Trae</span>
-          <span>○ Reasonix</span>
-          <span class="on">● OpenCode</span>
-          <span>○ OpenClaw</span>
-          <span>○ Cursor</span>
-          <span class="on">● Gemini</span>
-          <span class="on">● ZCode</span>
-          <span>○ Qwen Code</span>
-          <span>○ iFlow CLI</span>
-          <span class="on">● GitHub Copilot</span>
-          <span>○ Amp</span>
-          <span>○ Crush</span>
-          <span>○ Goose</span>
-          <span>○ Windsurf</span>
-          <span>○ Kiro</span>
-          <span>○ Cline</span>
-          <span>○ Roo Code</span>
-          <span>○ Zed</span>
+          <span>Claude</span>
+          <span>Claude Code</span>
+          <span>Codex</span>
+          <span>Qoder</span>
+          <span>Qoder Work</span>
+          <span>CodeWhale</span>
+          <span>Trae</span>
+          <span>Reasonix</span>
+          <span>OpenCode</span>
+          <span>OpenClaw</span>
+          <span>Cursor</span>
+          <span>Gemini</span>
+          <span>ZCode</span>
+          <span>Qwen Code</span>
+          <span>iFlow CLI</span>
+          <span>GitHub Copilot</span>
+          <span>Amp</span>
+          <span>Crush</span>
+          <span>Goose</span>
+          <span>Windsurf</span>
+          <span>Kiro</span>
+          <span>Cline</span>
+          <span>Roo Code</span>
+          <span>Zed</span>
         </div>
       </div>
     </section>
@@ -422,7 +425,7 @@
     <section id="download">
       <div class="wrap">
         <div class="sec-head reveal"><span class="no">03 / DOWNLOAD</span><h2>获取 SkillHub</h2></div>
-        <p class="sec-sub reveal">安装包由 GitHub Actions 构建，可在 Release 页校验。</p>
+        <p class="sec-sub reveal">GitHub Actions 干净构建。</p>
         <div class="download-box reveal">
           <div>
             <h2>v0.2.1</h2>

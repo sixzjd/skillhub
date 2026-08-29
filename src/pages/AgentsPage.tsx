@@ -395,7 +395,7 @@ function AgentCard({
           </div>
           <div className="flex items-center gap-2">
             {agent.status !== "installed" && agent.install_url && (
-              <Button variant="outline" size="sm" onClick={() => onInstall(agent.install_url!)}>
+              <Button variant="outline" size="sm" className="h-6 px-2.5 text-[11px] font-normal" onClick={() => onInstall(agent.install_url!)}>
                 {t.agents.install}
               </Button>
             )}
