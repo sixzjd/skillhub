@@ -19,15 +19,25 @@
   <meta property="og:image" content="https://skillhub.sixzjd.sbs/icon.png">
   <meta name="twitter:card" content="summary">
   <meta name="twitter:title" content="SkillHub — 跨 Agent 技能管理器">
-  <meta name="twitter:description" content="One library for every AI agent's skills. Free, open source, local-first.">
+  <meta name="twitter:description" content="One library for every AI agent's skills.">
+  <script>
+    // 主题：用户手动选择优先，否则跟随系统。在 CSS 渲染前执行避免闪烁。
+    (function () {
+      var t = null;
+      try { t = localStorage.getItem("theme"); } catch (e) {}
+      if (t !== "light" && t !== "dark") {
+        t = window.matchMedia && matchMedia("(prefers-color-scheme: light)").matches ? "light" : "dark";
+      }
+      document.documentElement.dataset.theme = t;
+    })();
+  </script>
   <style>
     @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap');
 
-    :root {
+    :root[data-theme="dark"] {
+      color-scheme: dark;
       --bg: #0b0f14;
-      --bg-soft: #12100e;
       --panel: rgba(30, 24, 21, .72);
-      --panel-solid: #1a1512;
       --panel-hover: #241c17;
       --line: rgba(240, 214, 200, .12);
       --line-strong: rgba(224, 122, 100, .45);
@@ -36,13 +46,31 @@
       --faint: #7d6f64;
       --accent: #e07a64;
       --accent-strong: #c0543e;
-      --green: #79e2a1;
-      --amber: #f0c674;
-      --radius-sm: 10px;
-      --radius-md: 16px;
-      --radius-lg: 24px;
-      --ease: cubic-bezier(.16, 1, .3, 1);
+      --accent-soft: rgba(224, 122, 100, .08);
+      --header-bg: rgba(11, 15, 20, .72);
+      --subtle: rgba(255, 255, 255, .02);
+      --glow1: rgba(224, 122, 100, .12);
+      --glow2: rgba(192, 84, 62, .09);
       --shadow: 0 24px 80px rgba(0, 0, 0, .35);
+    }
+    :root[data-theme="light"] {
+      color-scheme: light;
+      --bg: #faf8f5;
+      --panel: rgba(255, 255, 255, .82);
+      --panel-hover: #f3ece5;
+      --line: rgba(60, 42, 32, .13);
+      --line-strong: rgba(192, 84, 62, .5);
+      --text: #2c2420;
+      --muted: #655749;
+      --faint: #9a8b7c;
+      --accent: #c0543e;
+      --accent-strong: #a84535;
+      --accent-soft: rgba(192, 84, 62, .08);
+      --header-bg: rgba(250, 248, 245, .78);
+      --subtle: rgba(44, 36, 32, .03);
+      --glow1: rgba(192, 84, 62, .08);
+      --glow2: rgba(192, 84, 62, .05);
+      --shadow: 0 18px 60px rgba(60, 42, 32, .1);
     }
 
     * { box-sizing: border-box; }
@@ -55,6 +83,7 @@
       line-height: 1.6;
       -webkit-font-smoothing: antialiased;
       overflow-x: hidden;
+      transition: background .25s ease, color .25s ease;
     }
     body::before {
       content: "";
@@ -62,8 +91,8 @@
       inset: 0;
       pointer-events: none;
       background:
-        radial-gradient(circle at 78% 6%, rgba(224, 122, 100, .12), transparent 30%),
-        radial-gradient(circle at 6% 42%, rgba(192, 84, 62, .09), transparent 26%);
+        radial-gradient(circle at 78% 6%, var(--glow1), transparent 30%),
+        radial-gradient(circle at 6% 42%, var(--glow2), transparent 26%);
       z-index: -2;
     }
     a { color: inherit; }
@@ -81,7 +110,7 @@
       position: sticky; top: 0; z-index: 50;
       backdrop-filter: blur(14px);
       -webkit-backdrop-filter: blur(14px);
-      background: rgba(11, 15, 20, .72);
+      background: var(--header-bg);
       border-bottom: 1px solid var(--line);
     }
     .nav {
@@ -91,9 +120,26 @@
     .nav img { width: 34px; height: 34px; border-radius: 9px; }
     .nav .name { font-weight: 700; letter-spacing: -.01em; }
     .nav .tag { color: var(--faint); font-size: 12px; margin-left: 2px; }
-    .nav .links { margin-left: auto; display: flex; gap: 22px; font-size: 14px; }
-    .nav .links a { color: var(--muted); text-decoration: none; transition: color .15s var(--ease); }
+    .nav .links { margin-left: auto; display: flex; gap: 22px; font-size: 14px; align-items: center; }
+    .nav .links a { color: var(--muted); text-decoration: none; transition: color .15s var(--ease, ease); }
     .nav .links a:hover { color: var(--text); }
+    .theme-btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      width: 34px; height: 34px;
+      border: 1px solid var(--line);
+      border-radius: 10px;
+      background: transparent;
+      color: var(--muted);
+      cursor: pointer;
+      transition: color .15s ease, border-color .15s ease, transform .15s ease;
+    }
+    .theme-btn:hover { color: var(--accent); border-color: var(--line-strong); }
+    .theme-btn:active { transform: scale(.94); }
+    .theme-btn svg { width: 17px; height: 17px; }
+    :root[data-theme="dark"] .icon-sun { display: none; }
+    :root[data-theme="dark"] .icon-moon { display: block; }
+    :root[data-theme="light"] .icon-sun { display: block; }
+    :root[data-theme="light"] .icon-moon { display: none; }
     @media (max-width: 640px) { .nav .tag { display: none; } .nav .links { gap: 14px; font-size: 13px; } }
 
     /* ── Hero ─────────────────────────────── */
@@ -133,23 +179,23 @@
     .btn {
       display: inline-flex; align-items: center; gap: 9px;
       padding: 13px 26px;
-      border-radius: var(--radius-sm);
+      border-radius: 10px;
       font-weight: 600; font-size: 15px;
       text-decoration: none;
-      transition: transform .15s var(--ease), background .15s var(--ease), border-color .15s var(--ease);
+      transition: transform .15s ease, background .15s ease, border-color .15s ease;
     }
     .btn:active { transform: scale(.98); }
     .btn.primary { background: var(--accent-strong); color: #fff; }
     .btn.primary:hover { background: var(--accent); }
     .btn.ghost { border: 1px solid var(--line); color: var(--text); }
-    .btn.ghost:hover { border-color: var(--line-strong); background: rgba(224, 122, 100, .06); }
+    .btn.ghost:hover { border-color: var(--line-strong); background: var(--accent-soft); }
     .btn small { font-weight: 400; opacity: .75; font-size: 12px; }
 
     /* ── 终端模拟 ─────────────────────────── */
     .term {
       margin: 54px 0 0;
       border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border-radius: 16px;
       background: var(--panel);
       box-shadow: var(--shadow);
       overflow: hidden;
@@ -159,7 +205,7 @@
       display: flex; align-items: center; gap: 7px;
       padding: 11px 16px;
       border-bottom: 1px solid var(--line);
-      background: rgba(255, 255, 255, .02);
+      background: var(--subtle);
     }
     .term .bar i { width: 11px; height: 11px; border-radius: 50%; background: var(--faint); opacity: .5; }
     .term .bar .title { margin-left: auto; color: var(--faint); font-size: 12px; }
@@ -171,11 +217,12 @@
       overflow-x: auto;
     }
     .term .c-accent { color: var(--accent); }
-    .term .c-green { color: var(--green); }
+    .term .c-green { color: #2f9e63; }
+    :root[data-theme="dark"] .term .c-green { color: #79e2a1; }
     .term .c-text { color: var(--text); }
     .term .c-faint { color: var(--faint); }
 
-    /* ── 章节编号 ─────────────────────────── */
+    /* ── 章节 ─────────────────────────────── */
     section { padding: 76px 0; }
     .sec-head { display: flex; align-items: baseline; gap: 18px; margin-bottom: 12px; }
     .sec-head .no {
@@ -186,24 +233,24 @@
     .sec-head h2 { font-size: clamp(24px, 3.4vw, 32px); letter-spacing: -.02em; margin: 0; }
     .sec-sub { color: var(--muted); max-width: 620px; margin: 0 0 34px; }
 
-    .grid { display: grid; gap: 16px; grid-template-columns: repeat(auto-fit, minmax(250px, 1fr)); }
+    .grid { display: grid; gap: 14px; grid-template-columns: repeat(4, 1fr); }
+    @media (max-width: 920px) { .grid { grid-template-columns: repeat(2, 1fr); } }
+    @media (max-width: 560px) { .grid { grid-template-columns: 1fr; } }
     .card {
       border: 1px solid var(--line);
-      border-radius: var(--radius-md);
+      border-radius: 16px;
       background: var(--panel);
-      padding: 22px;
-      transition: border-color .2s var(--ease), background .2s var(--ease), transform .2s var(--ease);
+      padding: 20px;
+      transition: border-color .2s ease, background .2s ease, transform .2s ease;
     }
     .card:hover { border-color: var(--line-strong); background: var(--panel-hover); transform: translateY(-2px); }
     @media (prefers-reduced-motion: reduce) { .card:hover { transform: none; } }
-    .card .sym { color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 13px; }
-    .card h3 { margin: 10px 0 6px; font-size: 16.5px; letter-spacing: -.01em; }
-    .card p { margin: 0; color: var(--muted); font-size: 14px; }
+    .card .sym { color: var(--accent); font-family: "JetBrains Mono", monospace; font-size: 12.5px; letter-spacing: .06em; }
+    .card h3 { margin: 9px 0 5px; font-size: 16px; letter-spacing: -.01em; }
+    .card p { margin: 0; color: var(--muted); font-size: 13.5px; }
 
     /* agents 墙 */
-    .agents-wall {
-      display: flex; flex-wrap: wrap; gap: 9px; max-width: 780px;
-    }
+    .agents-wall { display: flex; flex-wrap: wrap; gap: 9px; max-width: 780px; }
     .agents-wall span {
       border: 1px solid var(--line);
       border-radius: 999px;
@@ -211,15 +258,15 @@
       font-size: 13px;
       color: var(--muted);
       font-family: "JetBrains Mono", monospace;
-      transition: color .15s var(--ease), border-color .15s var(--ease);
+      transition: color .15s ease, border-color .15s ease;
     }
     .agents-wall span:hover { color: var(--accent); border-color: var(--line-strong); }
-    .agents-wall span.on { color: var(--text); border-color: var(--line-strong); background: rgba(224, 122, 100, .08); }
+    .agents-wall span.on { color: var(--text); border-color: var(--line-strong); background: var(--accent-soft); }
 
     /* ── 下载区 ───────────────────────────── */
     .download-box {
       border: 1px solid var(--line-strong);
-      border-radius: var(--radius-lg);
+      border-radius: 24px;
       background: var(--panel);
       box-shadow: var(--shadow);
       padding: 40px;
@@ -231,10 +278,10 @@
     .dl-row {
       display: flex; align-items: center; justify-content: space-between; gap: 18px;
       border: 1px solid var(--line);
-      border-radius: var(--radius-sm);
+      border-radius: 10px;
       padding: 12px 18px;
       text-decoration: none;
-      transition: border-color .15s var(--ease), background .15s var(--ease);
+      transition: border-color .15s ease, background .15s ease;
     }
     .dl-row:hover { border-color: var(--line-strong); background: var(--panel-hover); }
     .dl-row .os { font-weight: 600; font-size: 14px; }
@@ -245,7 +292,7 @@
     .foot a { color: var(--muted); text-decoration: none; }
     .foot a:hover { color: var(--accent); }
 
-    .reveal { opacity: 0; transform: translateY(14px); transition: opacity .5s var(--ease), transform .5s var(--ease); }
+    .reveal { opacity: 0; transform: translateY(14px); transition: opacity .5s ease, transform .5s ease; }
     .reveal.in { opacity: 1; transform: none; }
     @media (prefers-reduced-motion: reduce) { .reveal { opacity: 1; transform: none; transition: none; } }
   </style>
@@ -258,9 +305,17 @@
       <span class="tag mono">cross-agent skills manager</span>
       <nav class="links" aria-label="页面导航">
         <a href="#workflow">工作流</a>
-        <a href="#agents">支持的 Agent</a>
+        <a href="#agents">Agent</a>
         <a href="#download">下载</a>
         <a href="https://github.com/sixzjd/skillhub" target="_blank" rel="noopener">GitHub</a>
+        <button class="theme-btn" id="themeToggle" type="button" aria-label="切换浅色 / 深色模式" title="切换浅色 / 深色模式">
+          <svg class="icon-sun" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/>
+          </svg>
+          <svg class="icon-moon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+          </svg>
+        </button>
       </nav>
     </div>
   </header>
@@ -270,7 +325,7 @@
     <div class="wrap hero">
       <span class="kicker mono"><span class="dot" aria-hidden="true"></span>SSOT · ~/.agents/skills</span>
       <h1>一个库，管理<br>所有 AI Agent 的<span class="accent">技能</span></h1>
-      <p class="sub">SkillHub 扫描本机的 Claude Code、Codex、Qoder、Trae、Cursor 等 24 个 Agent，把散落各处的技能收进一个本地库，再一键同步到任何 Agent。</p>
+      <p class="sub">扫描本机 24 个 AI Agent，技能统一进一个本地库，一键同步到任何 Agent。</p>
       <p class="meta mono">
         <span>◆ 免费开源</span>
         <span>◆ 本地优先</span>
@@ -288,11 +343,11 @@
         <div class="bar" aria-hidden="true"><i></i><i></i><i></i><span class="title mono">skillhub — scan</span></div>
         <pre><span class="c-accent">$</span> <span class="c-text">skillhub scan</span>
 <span class="c-faint">›</span> 扫描本机 Agent …
-  <span class="c-green">✓</span> Claude Code   <span class="c-faint">~/.claude/skills</span>        13 skills
-  <span class="c-green">✓</span> Codex         <span class="c-faint">~/.codex/skills</span>         13 skills
-  <span class="c-green">✓</span> Qoder         <span class="c-faint">~/.qoder</span>                20 skills
-  <span class="c-green">✓</span> CodeWhale     <span class="c-faint">~/.codewhale/skills</span>     54 skills
-  <span class="c-green">✓</span> ZCode         <span class="c-faint">~/.zcode/skills</span>          1 skill
+  <span class="c-green">✓</span> Claude Code    <span class="c-faint">~/.claude/skills</span>        13 skills
+  <span class="c-green">✓</span> Codex          <span class="c-faint">~/.codex/skills</span>         13 skills
+  <span class="c-green">✓</span> Qoder          <span class="c-faint">~/.qoder</span>                20 skills
+  <span class="c-green">✓</span> CodeWhale      <span class="c-faint">~/.codewhale/skills</span>     54 skills
+  <span class="c-green">✓</span> ZCode          <span class="c-faint">~/.zcode/skills</span>          1 skill
   <span class="c-green">✓</span> GitHub Copilot <span class="c-faint">~/.copilot</span>              5 skills
 <span class="c-accent">$</span> <span class="c-text">skillhub sync --all</span>
 <span class="c-green">✓</span> 软链接同步完成 · 内置技能已保护 · 0 冲突</pre>
@@ -303,27 +358,27 @@
     <section id="workflow">
       <div class="wrap">
         <div class="sec-head reveal"><span class="no">01 / WORKFLOW</span><h2>四步，技能不再散落</h2></div>
-        <p class="sec-sub reveal">从扫描到同步全自动：内置技能绝不外传、绝不覆盖；删除只进回收站，可随时恢复。</p>
+        <p class="sec-sub reveal">从扫描到同步全自动，安全隔离不联网。</p>
         <div class="grid">
           <div class="card reveal">
             <span class="sym">SCAN</span>
             <h3>扫描 Agent</h3>
-            <p>自动检测本机 24 个主流 Agent 及其技能目录，区分"已安装 / 未安装 / 卸载残留"。</p>
+            <p>自动检测 24 个主流 Agent 与技能目录。</p>
           </div>
           <div class="card reveal">
             <span class="sym">IMPORT</span>
             <h3>导入本地库</h3>
-            <p>勾选任意 Agent 的技能导入 ~/.agents/skills 单一事实源，源目录自动转为链接，省空间且改动即生效。</p>
+            <p>勾选导入 ~/.agents/skills，源目录自动转为软链接。</p>
           </div>
           <div class="card reveal">
             <span class="sym">SYNC</span>
             <h3>同步到 Agent</h3>
-            <p>软链接优先、失败回退复制；各 Agent 内置技能自动跳过；孤儿链接自动回收进废纸篓。</p>
+            <p>软链接优先，失败回退复制，内置技能绝不覆盖。</p>
           </div>
           <div class="card reveal">
             <span class="sym">MARKET</span>
             <h3>市场安装</h3>
-            <p>内置 Anthropic 官方与社区市场，浏览、安装、更新一键完成；已装技能支持来源追溯与更新。</p>
+            <p>官方与社区市场，安装、更新一键完成。</p>
           </div>
         </div>
       </div>
@@ -333,7 +388,7 @@
     <section id="agents">
       <div class="wrap">
         <div class="sec-head reveal"><span class="no">02 / AGENTS</span><h2>开箱支持 24 个 Agent</h2></div>
-        <p class="sec-sub reveal">标注 <span class="mono" style="color:var(--accent)">●</span> 的为本机已检出。列表持续跟进主流与国内新兴 Agent。</p>
+        <p class="sec-sub reveal">标注 <span class="mono" style="color:var(--accent)">●</span> 为本机已检出。</p>
         <div class="agents-wall reveal mono" id="agentsWall">
           <span class="on">● Claude</span>
           <span class="on">● Claude Code</span>
@@ -367,11 +422,11 @@
     <section id="download">
       <div class="wrap">
         <div class="sec-head reveal"><span class="no">03 / DOWNLOAD</span><h2>获取 SkillHub</h2></div>
-        <p class="sec-sub reveal">所有安装包由 GitHub Actions 在干净环境中构建，可在 Release 页校验。</p>
+        <p class="sec-sub reveal">安装包由 GitHub Actions 构建，可在 Release 页校验。</p>
         <div class="download-box reveal">
           <div>
             <h2>v0.2.1</h2>
-            <p>24 个 Agent · 市场更新机制 · 全新 UI 与动效</p>
+            <p>24 个 Agent · 市场更新机制 · 深浅色官网</p>
             <p class="mono" style="margin-top:10px;color:var(--faint);font-size:12px">macOS 12+ · Windows 10+ · 免费开源 MIT</p>
           </div>
           <div class="dl-list">
@@ -399,13 +454,34 @@
   </footer>
 
   <script>
-    // 入场渐显（尊重系统减弱动态设置：CSS 侧已处理）
-    const io = new IntersectionObserver((entries) => {
-      for (const e of entries) {
-        if (e.isIntersecting) { e.target.classList.add('in'); io.unobserve(e.target); }
+    // 主题切换：手动选择持久化；未选择时跟随系统
+    var root = document.documentElement;
+    var metaTheme = document.querySelector('meta[name="theme-color"]');
+    function syncMeta() {
+      metaTheme.content = root.dataset.theme === "light" ? "#faf8f5" : "#0b0f14";
+    }
+    syncMeta();
+    document.getElementById("themeToggle").addEventListener("click", function () {
+      root.dataset.theme = root.dataset.theme === "light" ? "dark" : "light";
+      try { localStorage.setItem("theme", root.dataset.theme); } catch (e) {}
+      syncMeta();
+    });
+    window.matchMedia("(prefers-color-scheme: light)").addEventListener("change", function (e) {
+      var saved = null;
+      try { saved = localStorage.getItem("theme"); } catch (err) {}
+      if (saved !== "light" && saved !== "dark") {
+        root.dataset.theme = e.matches ? "light" : "dark";
+        syncMeta();
       }
+    });
+
+    // 入场渐显（尊重系统减弱动态设置：CSS 侧已处理）
+    var io = new IntersectionObserver(function (entries) {
+      entries.forEach(function (e) {
+        if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); }
+      });
     }, { threshold: 0.12 });
-    document.querySelectorAll('.reveal').forEach((el) => io.observe(el));
+    document.querySelectorAll(".reveal").forEach(function (el) { io.observe(el); });
   </script>
 </body>
 </html>
