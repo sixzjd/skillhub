@@ -333,8 +333,8 @@
         <span>◆ v0.2.1</span>
       </p>
       <div class="cta">
-        <a class="btn primary" href="https://github.com/sixzjd/skillhub/releases/latest" target="_blank" rel="noopener">
-          下载 SkillHub <small>macOS / Windows</small>
+        <a class="btn primary" id="dl-hero" href="https://github.com/sixzjd/skillhub/releases/latest/download/SkillHub-macOS.dmg">
+          下载 SkillHub <small id="dl-hero-platform">macOS · .dmg</small>
         </a>
         <a class="btn ghost" href="https://github.com/sixzjd/skillhub" target="_blank" rel="noopener">查看源码</a>
       </div>
@@ -430,11 +430,14 @@
             <p class="mono" style="margin-top:10px;color:var(--faint);font-size:12px">macOS 12+ · Windows 10+ · 免费开源 MIT</p>
           </div>
           <div class="dl-list">
-            <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases/latest" target="_blank" rel="noopener">
+            <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases/latest/download/SkillHub-macOS.dmg">
               <span class="os">macOS</span><span class="fmt">.dmg · Apple Silicon</span>
             </a>
-            <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases/latest" target="_blank" rel="noopener">
-              <span class="os">Windows</span><span class="fmt">.msi / .exe</span>
+            <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases/latest/download/SkillHub-Windows-setup.exe">
+              <span class="os">Windows</span><span class="fmt">.exe 安装向导</span>
+            </a>
+            <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases/latest/download/SkillHub-Windows.msi">
+              <span class="os">Windows</span><span class="fmt">.msi 企业部署</span>
             </a>
             <a class="dl-row" href="https://github.com/sixzjd/skillhub/releases" target="_blank" rel="noopener">
               <span class="os">全部版本</span><span class="fmt">releases</span>
@@ -482,6 +485,13 @@
       });
     }, { threshold: 0.12 });
     document.querySelectorAll(".reveal").forEach(function (el) { io.observe(el); });
+
+    // Hero 下载按钮按平台给直链（固定文件名，自动指向最新 Release）
+    if (/Win/i.test(navigator.userAgent)) {
+      document.getElementById("dl-hero").href =
+        "https://github.com/sixzjd/skillhub/releases/latest/download/SkillHub-Windows-setup.exe";
+      document.getElementById("dl-hero-platform").textContent = "Windows · .exe";
+    }
   </script>
 </body>
 </html>

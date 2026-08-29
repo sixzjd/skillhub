@@ -90,6 +90,10 @@ jobs:
         run: |
           mkdir -p release-assets
           find artifacts -type f \( -name "*.dmg" -o -name "*.app.tar.gz" -o -name "*.msi" -o -name "*.exe" \) -exec cp {} release-assets/ \;
+          # 固定文件名副本：官网 "releases/latest/download/..." 直链用，跨版本不变
+          for f in release-assets/*.dmg; do cp "$f" release-assets/SkillHub-macOS.dmg; done
+          for f in release-assets/*.msi; do cp "$f" release-assets/SkillHub-Windows.msi; done
+          for f in release-assets/*x64-setup.exe; do cp "$f" release-assets/SkillHub-Windows-setup.exe; done
           ls -la release-assets/
 
       - name: Create Release
